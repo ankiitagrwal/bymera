@@ -35,7 +35,7 @@ contract VymeraTest is Test {
         // Deploy mock token
         token = new MockERC20("Test Token", "TEST", 18);
 
-        // Deploy PayperPlane contract as owner
+        // Deploy Vymera contract as owner
         vm.prank(owner);
         vymera = new Vymera(owner);
 

@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {Vymera} from "../src/Vymera.sol";
 import {CREATE3} from "solady/utils/CREATE3.sol";
 
-/// @title DeployPayperPlane
+/// @title DeployVymera
 /// @notice Deployment script for the Vymera contract
 contract DeployVymera is Script {
     bytes32 public constant SALT =
