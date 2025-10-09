@@ -1,5 +1,6 @@
 import Image from 'next/image'
-import { MAIN_CONTRACT_ADDRESS } from '@/constants'
+import Link from 'next/link'
+import { MAIN_CONTRACT_ADDRESS, BASE_CHAIN_BASE_URL } from '@/constants'
 
 export const Footer = () => {
   return (
@@ -9,7 +10,14 @@ export const Footer = () => {
           <p>&copy; {new Date().getFullYear()} Vymera. All rights reserved.</p>
           <p className="text-sm mt-1">
             Contract Address:{' '}
-            <span className="font-mono text-gray-400">{MAIN_CONTRACT_ADDRESS}</span>
+            <Link
+              href={`${BASE_CHAIN_BASE_URL}/${MAIN_CONTRACT_ADDRESS}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-gray-400 hover:text-white hover:underline transition-colors"
+            >
+              {MAIN_CONTRACT_ADDRESS}
+            </Link>
           </p>
         </div>
         <div className="flex items-center space-x-4">
