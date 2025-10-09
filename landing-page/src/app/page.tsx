@@ -26,37 +26,23 @@ const HomePage: NextPage = () => {
                   accepts card payments, even if the merchant doesn&apos;t support cryptocurrency.
                 </p>
                 <button className="bg-gradient text-white font-bold text-lg py-4 px-10 rounded-lg focus:ring transform transition hover:scale-105 duration-300 ease-in-out">
-                  Get Started for Free
+                  Try Now!
                 </button>
               </div>
               <div className="w-full p-4 md:p-8">
-                <div className="bg-[#100f2a] rounded-xl shadow-2xl p-6 border border-white/10 transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex space-x-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    </div>
-                    <p className="text-sm text-gray-500">Checkout</p>
-                  </div>
-                  <div className="bg-[#19183a] rounded-lg p-6">
-                    <p className="text-white font-semibold mb-4">Pay with card</p>
-                    <div className="bg-[#100f2a] h-10 rounded-md w-full mb-3 border border-white/10"></div>
-                    <div className="flex space-x-3">
-                      <div className="bg-[#100f2a] h-10 rounded-md w-1/2 border border-white/10"></div>
-                      <div className="bg-[#100f2a] h-10 rounded-md w-1/2 border border-white/10"></div>
-                    </div>
-                    <div className="relative flex py-5 items-center">
-                      <div className="flex-grow border-t border-gray-700"></div>
-                      <span className="flex-shrink mx-4 text-gray-500 text-sm">
-                        Or pay with Vymera
-                      </span>
-                      <div className="flex-grow border-t border-gray-700"></div>
-                    </div>
-                    <button className="bg-gradient w-full text-white font-bold py-3 px-8 rounded-lg transform transition hover:scale-105 duration-300 ease-in-out">
-                      Connect Wallet & Pay
-                    </button>
-                  </div>
+                <div className="bg-[#100f2a] rounded-xl shadow-2xl p-6 border border-white/10 transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out flex gap-3">
+                  <Image
+                    src="/images/screenshot1.png"
+                    width={300}
+                    height={800}
+                    alt="screenshot 1"
+                  />
+                  <Image
+                    src="/images/screenshot2.png"
+                    width={300}
+                    height={800}
+                    alt="screenshot 2"
+                  />
                 </div>
               </div>
             </div>
