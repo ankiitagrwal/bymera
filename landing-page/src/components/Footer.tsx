@@ -1,20 +1,20 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { MAIN_CONTRACT_ADDRESS, BASE_CHAIN_BASE_URL } from '@/constants'
+import { MAIN_CONTRACT_ADDRESS, BASE_CHAIN_SEPOLIA_BASE_URL } from '@/constants'
 
 export const Footer = () => {
   return (
     <footer className="w-full container mx-auto border-t border-white/10 p-6">
       <div className="flex flex-col md:flex-row justify-between items-center text-center">
-        <div className="text-gray-500 mb-4 md:mb-0 md:text-left">
+        <div className="text-gray-500 mb-4 md:mb-0 md:text-left text-xl">
           <p>&copy; {new Date().getFullYear()} Vymera. All rights reserved.</p>
-          <p className="text-sm mt-1">
+          <p className="text-xl mt-1">
             Contract Address:{' '}
             <Link
-              href={`${BASE_CHAIN_BASE_URL}/${MAIN_CONTRACT_ADDRESS}`}
+              href={`${BASE_CHAIN_SEPOLIA_BASE_URL}/${MAIN_CONTRACT_ADDRESS}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-gray-400 hover:text-white hover:underline transition-colors"
+              className="font-mono text-white underline hover:no-underline  transition-colors"
             >
               {MAIN_CONTRACT_ADDRESS}
             </Link>
