@@ -1,10 +1,10 @@
-# Vymera
+# Bymera
 
 > Universal Crypto Payment Solution
 
 **"Pay with crypto anywhere — even on sites that only accept cards."**
 
-Vymera is a browser extension that enables crypto payments on any website that accepts card payments, even if the merchant doesn't support cryptocurrency.
+Bymera is a browser extension that enables crypto payments on any website that accepts card payments, even if the merchant doesn't support cryptocurrency.
 
 ---
 
@@ -23,7 +23,7 @@ Despite massive Web3 growth, crypto payments still face major barriers:
 
 ## Our Solution
 
-Vymera is a browser extension that acts as a universal crypto payment bridge:
+Bymera is a browser extension that acts as a universal crypto payment bridge:
 
 - Works on **any site** that has a card checkout form
 - Replaces manual card input with a **one-click crypto payment flow**
@@ -75,7 +75,7 @@ Vymera is a browser extension that acts as a universal crypto payment bridge:
 1. Navigate to any e-commerce site
 2. Add items to your cart
 3. Proceed to checkout
-4. Click the Vymera extension when payment form appears
+4. Click the Bymera extension when payment form appears
 5. Select your crypto and confirm payment
 6. Payment is processed automatically with a virtual card
 

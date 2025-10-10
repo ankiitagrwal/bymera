@@ -1,7 +1,7 @@
-## Vymera Backend (FastAPI)
+## Bymera Backend (FastAPI)
 
 FastAPI service that:
-- Listens to `Funded` events from `Vymera.sol` via Web3 in a background thread
+- Listens to `Funded` events from `Bymera.sol` via Web3 in a background thread
 - Creates Lithic virtual cards per funding and persists state in SQLite
 - Provides secured REST endpoints to create/query fundings and simulate payments
 
@@ -13,7 +13,7 @@ cp .env.example .env  # if you have one, otherwise create .env (see below)
 2) Create `.env` with at least:
 ```bash
 BACKEND_API_KEY=changeme
-DATABASE_URL=sqlite:///./vymera.db
+DATABASE_URL=sqlite:///./bymera.db
 WEB3_PROVIDER_URI=http://127.0.0.1:8545
 CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000  # zero address = listener no-op
 LITHIC_API_KEY=your_lithic_sandbox_key

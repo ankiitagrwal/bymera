@@ -1660,7 +1660,7 @@ wheels = [
 ]
 
 [[package]]
-name = "vymera"
+name = "bymera"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

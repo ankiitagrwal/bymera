@@ -4,7 +4,7 @@ A simple, gas-efficient smart contract for funding virtual cards with cryptocurr
 
 ## Overview
 
-The `Vymera` contract allows users to fund virtual cards using either ERC20 tokens or native cryptocurrency (ETH). The contract is designed for minimal gas usage and maximum simplicity, with all complex logic handled off-chain by the backend.
+The `Bymera` contract allows users to fund virtual cards using either ERC20 tokens or native cryptocurrency (ETH). The contract is designed for minimal gas usage and maximum simplicity, with all complex logic handled off-chain by the backend.
 
 ## Features
 
@@ -77,7 +77,7 @@ forge test
 Deploy to Base Sepolia
 
 ```bash
-forge script script/DeployVymera.s.sol \
+forge script script/DeployBymera.s.sol \
   --rpc-url $RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast \
