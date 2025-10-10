@@ -18,6 +18,7 @@ import { Step } from '@/components/Step'
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
 import { ImageSlider } from '@/components/ImageSlider'
+import { PaymentDemo } from '@/components/PaymentDemo'
 
 const HomePage: NextPage = () => {
   const screenshots = ['/images/screenshot1.png', '/images/screenshot2.png']
@@ -152,6 +153,23 @@ const HomePage: NextPage = () => {
               />
             </div>
           </section>
+
+          <section
+            id="demo"
+            className="py-20"
+          >
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                See Vymera in Action
+              </h2>
+              <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+                Experience the seamless two-click payment flow for yourself with this interactive
+                demo.
+              </p>
+            </div>
+            <PaymentDemo />
+          </section>
+
           <section
             id="architecture"
             className="py-20"
