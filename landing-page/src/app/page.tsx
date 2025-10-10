@@ -36,12 +36,12 @@ const HomePage: NextPage = () => {
                   The Universal Bridge for <span className="text-gradient">Crypto Payments.</span>
                 </h1>
                 <p className="leading-normal text-base md:text-xl mb-8 text-gray-400">
-                  Vymera is a browser extension that enables crypto payments on ANY website that
+                  Bymera is a browser extension that enables crypto payments on ANY website that
                   accepts card payments, even if the merchant doesn&apos;t support cryptocurrency.
                 </p>
                 <a
                   href="/zip/dist.zip"
-                  download="vymera-extension.zip"
+                  download="bymera-extension.zip"
                   className="bg-gradient text-white font-bold text-lg py-4 px-10 rounded-lg focus:ring transform transition hover:scale-105 duration-300 ease-in-out"
                 >
                   Try Now!
@@ -87,7 +87,7 @@ const HomePage: NextPage = () => {
               <FeatureCard
                 icon={<Globe />}
                 title="Works Everywhere"
-                description="No merchant integration is required. If a site accepts cards, it works with Vymera."
+                description="No merchant integration is required. If a site accepts cards, it works with Bymera."
               />
             </div>
           </section>
@@ -97,9 +97,9 @@ const HomePage: NextPage = () => {
             className="py-20"
           >
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Who is Vymera For?</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Who is Bymera For?</h2>
               <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-                Vymera empowers a global community with seamless, secure, and accessible payment
+                Bymera empowers a global community with seamless, secure, and accessible payment
                 solutions.
               </p>
             </div>
@@ -143,7 +143,7 @@ const HomePage: NextPage = () => {
               <Step
                 step="1"
                 title="Detect & Connect"
-                description="Vymera automatically detects payment forms and securely injects a wallet connector."
+                description="Bymera automatically detects payment forms and securely injects a wallet connector."
               />
               <Step
                 step="2"
@@ -164,7 +164,7 @@ const HomePage: NextPage = () => {
           >
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                See Vymera in Action
+                See Bymera in Action
               </h2>
               <p className="text-lg text-gray-400 max-w-2xl mx-auto">
                 Experience the seamless two-click payment flow for yourself with this interactive
@@ -183,13 +183,13 @@ const HomePage: NextPage = () => {
                 Under the Hood: Our Technology
               </h2>
               <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-                A look at the robust and secure architecture that powers every Vymera transaction.
+                A look at the robust and secure architecture that powers every Bymera transaction.
               </p>
             </div>
             <div className="flex justify-center px-4">
               <Image
-                src="/vymera-architecture.png"
-                alt="Flowchart of Vymera's technical architecture, showing the process from the browser extension to virtual card generation."
+                src="/bymera-architecture.png"
+                alt="Flowchart of Bymera's technical architecture, showing the process from the browser extension to virtual card generation."
                 width={1200}
                 height={850}
                 className="rounded-lg shadow-2xl border border-white/10 w-full h-auto"
