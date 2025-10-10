@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {Ownable} from "solady/auth/Ownable.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-/// @title Vymera
+/// @title Bymera
 /// @notice Allows users to fund virtual cards with crypto
-contract Vymera is Ownable {
+contract Bymera is Ownable {
     /// @notice Struct to store card funding information
     struct Funding {
         uint256 id; // Unique card identifier

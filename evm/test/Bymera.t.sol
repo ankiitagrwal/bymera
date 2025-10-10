@@ -3,11 +3,11 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {Vymera} from "../src/Vymera.sol";
+import {Bymera} from "../src/Bymera.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
-contract VymeraTest is Test {
-    Vymera public vymera;
+contract BymeraTest is Test {
+    Bymera public bymera;
     MockERC20 public token;
     address public owner;
     address public user1;
@@ -35,9 +35,9 @@ contract VymeraTest is Test {
         // Deploy mock token
         token = new MockERC20("Test Token", "TEST", 18);
 
-        // Deploy Vymera contract as owner
+        // Deploy Bymera contract as owner
         vm.prank(owner);
-        vymera = new Vymera(owner);
+        bymera = new Bymera(owner);
 
         // Mint tokens to users for testing
         token.mint(user1, 1000e18);
@@ -45,10 +45,10 @@ contract VymeraTest is Test {
 
         // Approve contract to spend tokens
         vm.prank(user1);
-        token.approve(address(vymera), type(uint256).max);
+        token.approve(address(bymera), type(uint256).max);
 
         vm.prank(user2);
-        token.approve(address(vymera), type(uint256).max);
+        token.approve(address(bymera), type(uint256).max);
     }
 
     function testFund() public {
@@ -63,7 +63,7 @@ contract VymeraTest is Test {
 
         // Fund the card
         vm.prank(user1);
-        vymera.fund(
+        bymera.fund(
             cardId,
             address(token),
             tokenAmount,
@@ -78,7 +78,7 @@ contract VymeraTest is Test {
             uint256 amount,
             address user,
             bool refunded
-        ) = vymera.fundings(cardId);
+        ) = bymera.fundings(cardId);
 
         assertEq(id, cardId);
         assertEq(tokenAddress, address(token));
@@ -87,7 +87,7 @@ contract VymeraTest is Test {
         assertFalse(refunded);
 
         // Check tokens were transferred
-        assertEq(token.balanceOf(address(vymera)), tokenAmount);
+        assertEq(token.balanceOf(address(bymera)), tokenAmount);
         assertEq(token.balanceOf(user1), 900e18); // 1000 - 100
     }
 
@@ -98,11 +98,11 @@ contract VymeraTest is Test {
 
         // First funding
         vm.prank(user1);
-        vymera.fund(cardId, address(token), firstAmount, "SGD", 5000);
+        bymera.fund(cardId, address(token), firstAmount, "SGD", 5000);
 
         // Second funding (should overwrite)
         vm.prank(user2);
-        vymera.fund(cardId, address(token), secondAmount, "USD", 7500);
+        bymera.fund(cardId, address(token), secondAmount, "USD", 7500);
 
         // Check latest funding data
         (
@@ -111,7 +111,7 @@ contract VymeraTest is Test {
             uint256 amount,
             address user,
             bool refunded
-        ) = vymera.fundings(cardId);
+        ) = bymera.fundings(cardId);
 
         assertEq(id, cardId);
         assertEq(tokenAddress, address(token));
@@ -126,21 +126,21 @@ contract VymeraTest is Test {
         token2.mint(user1, 1000e18);
 
         vm.prank(user1);
-        token2.approve(address(vymera), type(uint256).max);
+        token2.approve(address(bymera), type(uint256).max);
 
         uint256 cardId = 1;
 
         // Fund with first token
         vm.prank(user1);
-        vymera.fund(cardId, address(token), 100e18, "SGD", 10000);
+        bymera.fund(cardId, address(token), 100e18, "SGD", 10000);
 
         // Fund with second token (different card)
         vm.prank(user1);
-        vymera.fund(cardId + 1, address(token2), 200e18, "USD", 20000);
+        bymera.fund(cardId + 1, address(token2), 200e18, "USD", 20000);
 
         // Check both fundings
-        (, address tokenAddress1, , , ) = vymera.fundings(cardId);
-        (, address tokenAddress2, , , ) = vymera.fundings(cardId + 1);
+        (, address tokenAddress1, , , ) = bymera.fundings(cardId);
+        (, address tokenAddress2, , , ) = bymera.fundings(cardId + 1);
 
         assertEq(tokenAddress1, address(token));
         assertEq(tokenAddress2, address(token2));
@@ -156,7 +156,7 @@ contract VymeraTest is Test {
 
         // Fund SGD card
         vm.prank(user1);
-        vymera.fund(cardId1, address(token), 100e18, "SGD", 10000);
+        bymera.fund(cardId1, address(token), 100e18, "SGD", 10000);
 
         // Expect second event
         vm.expectEmit(true, true, true, true);
@@ -164,7 +164,7 @@ contract VymeraTest is Test {
 
         // Fund USD card
         vm.prank(user1);
-        vymera.fund(cardId2, address(token), 100e18, "USD", 10000);
+        bymera.fund(cardId2, address(token), 100e18, "USD", 10000);
     }
 
     function testRefund() public {
@@ -173,7 +173,7 @@ contract VymeraTest is Test {
 
         // First fund the card
         vm.prank(user1);
-        vymera.fund(cardId, address(token), tokenAmount, "SGD", 10000);
+        bymera.fund(cardId, address(token), tokenAmount, "SGD", 10000);
 
         // Expect Refunded event
         vm.expectEmit(true, true, true, true);
@@ -181,15 +181,15 @@ contract VymeraTest is Test {
 
         // Refund the card (owner only)
         vm.prank(owner);
-        vymera.refund(cardId);
+        bymera.refund(cardId);
 
         // Check refund was processed
-        (, , , , bool refunded) = vymera.fundings(cardId);
+        (, , , , bool refunded) = bymera.fundings(cardId);
         assertTrue(refunded);
 
         // Check tokens were returned to user
         assertEq(token.balanceOf(user1), 1000e18); // Back to original amount
-        assertEq(token.balanceOf(address(vymera)), 0); // Contract has no tokens
+        assertEq(token.balanceOf(address(bymera)), 0); // Contract has no tokens
     }
 
     function testRefundNonOwner() public {
@@ -197,12 +197,12 @@ contract VymeraTest is Test {
 
         // Fund the card
         vm.prank(user1);
-        vymera.fund(cardId, address(token), 100e18, "SGD", 10000);
+        bymera.fund(cardId, address(token), 100e18, "SGD", 10000);
 
         // Try to refund as non-owner (should fail)
         vm.prank(user2);
         vm.expectRevert();
-        vymera.refund(cardId);
+        bymera.refund(cardId);
     }
 
     function testWithdrawTokens() public {
@@ -211,15 +211,15 @@ contract VymeraTest is Test {
 
         // Fund the card
         vm.prank(user1);
-        vymera.fund(cardId, address(token), tokenAmount, "SGD", 10000);
+        bymera.fund(cardId, address(token), tokenAmount, "SGD", 10000);
 
         // Withdraw tokens as owner
         vm.prank(owner);
-        vymera.withdrawTokens(address(token));
+        bymera.withdrawTokens(address(token));
 
         // Check tokens were withdrawn to owner
         assertEq(token.balanceOf(owner), tokenAmount);
-        assertEq(token.balanceOf(address(vymera)), 0);
+        assertEq(token.balanceOf(address(bymera)), 0);
     }
 
     function testWithdrawTokensNonOwner() public {
@@ -227,12 +227,12 @@ contract VymeraTest is Test {
 
         // Fund the card
         vm.prank(user1);
-        vymera.fund(cardId, address(token), 100e18, "SGD", 10000);
+        bymera.fund(cardId, address(token), 100e18, "SGD", 10000);
 
         // Try to withdraw as non-owner (should fail)
         vm.prank(user2);
         vm.expectRevert();
-        vymera.withdrawTokens(address(token));
+        bymera.withdrawTokens(address(token));
     }
 
     function testFundingsMapping() public {
@@ -245,7 +245,7 @@ contract VymeraTest is Test {
             uint256 amount,
             address user,
             bool refunded
-        ) = vymera.fundings(cardId);
+        ) = bymera.fundings(cardId);
         assertEq(id, 0);
         assertEq(tokenAddress, address(0));
         assertEq(amount, 0);
@@ -254,9 +254,9 @@ contract VymeraTest is Test {
 
         // After funding
         vm.prank(user1);
-        vymera.fund(cardId, address(token), 100e18, "SGD", 10000);
+        bymera.fund(cardId, address(token), 100e18, "SGD", 10000);
 
-        (id, tokenAddress, amount, user, refunded) = vymera.fundings(cardId);
+        (id, tokenAddress, amount, user, refunded) = bymera.fundings(cardId);
         assertEq(id, cardId);
         assertEq(tokenAddress, address(token));
         assertEq(amount, 100e18);
@@ -270,15 +270,15 @@ contract VymeraTest is Test {
 
         // User1 funds card1
         vm.prank(user1);
-        vymera.fund(cardId1, address(token), 100e18, "SGD", 10000);
+        bymera.fund(cardId1, address(token), 100e18, "SGD", 10000);
 
         // User2 funds card2
         vm.prank(user2);
-        vymera.fund(cardId2, address(token), 200e18, "USD", 20000);
+        bymera.fund(cardId2, address(token), 200e18, "USD", 20000);
 
         // Check both fundings are stored correctly
-        (, , uint256 amount1, address user1Check, ) = vymera.fundings(cardId1);
-        (, , uint256 amount2, address user2Check, ) = vymera.fundings(cardId2);
+        (, , uint256 amount1, address user1Check, ) = bymera.fundings(cardId1);
+        (, , uint256 amount2, address user2Check, ) = bymera.fundings(cardId2);
 
         assertEq(amount1, 100e18);
         assertEq(user1Check, user1);
@@ -291,14 +291,14 @@ contract VymeraTest is Test {
 
         // Fund with zero amount (should still work but transfer 0 tokens)
         vm.prank(user1);
-        vymera.fund(cardId, address(token), 0, "SGD", 0);
+        bymera.fund(cardId, address(token), 0, "SGD", 0);
 
         // Check funding was stored
-        (, , uint256 amount, , ) = vymera.fundings(cardId);
+        (, , uint256 amount, , ) = bymera.fundings(cardId);
         assertEq(amount, 0);
 
         // No tokens should be transferred
-        assertEq(token.balanceOf(address(vymera)), 0);
+        assertEq(token.balanceOf(address(bymera)), 0);
         assertEq(token.balanceOf(user1), 1000e18);
     }
 
@@ -317,7 +317,7 @@ contract VymeraTest is Test {
 
         // Fund the card with native token (address(0))
         vm.prank(user1);
-        vymera.fund{value: nativeAmount}(
+        bymera.fund{value: nativeAmount}(
             cardId,
             address(0),
             nativeAmount,
@@ -332,7 +332,7 @@ contract VymeraTest is Test {
             uint256 amount,
             address user,
             bool refunded
-        ) = vymera.fundings(cardId);
+        ) = bymera.fundings(cardId);
 
         assertEq(id, cardId);
         assertEq(tokenAddress, address(0)); // Native token
@@ -342,7 +342,7 @@ contract VymeraTest is Test {
 
         // Check ETH was transferred (user1 had 10 ETH, spent 1 ETH)
         assertEq(user1.balance, 9e18);
-        assertEq(address(vymera).balance, nativeAmount);
+        assertEq(address(bymera).balance, nativeAmount);
     }
 
     function testFundNativeTokenWrongValue() public {
@@ -355,8 +355,8 @@ contract VymeraTest is Test {
 
         // Try to fund with wrong msg.value (should revert)
         vm.prank(user1);
-        vm.expectRevert(Vymera.InvalidAmount.selector);
-        vymera.fund{value: wrongValue}(
+        vm.expectRevert(Bymera.InvalidAmount.selector);
+        bymera.fund{value: wrongValue}(
             cardId,
             address(0),
             nativeAmount,
@@ -372,7 +372,7 @@ contract VymeraTest is Test {
         // First fund the card with native token
         vm.deal(user1, 10e18);
         vm.prank(user1);
-        vymera.fund{value: nativeAmount}(
+        bymera.fund{value: nativeAmount}(
             cardId,
             address(0),
             nativeAmount,
@@ -382,7 +382,7 @@ contract VymeraTest is Test {
 
         // Check initial balances
         assertEq(user1.balance, 9e18);
-        assertEq(address(vymera).balance, nativeAmount);
+        assertEq(address(bymera).balance, nativeAmount);
 
         // Expect Refunded event
         vm.expectEmit(true, true, true, true);
@@ -390,15 +390,15 @@ contract VymeraTest is Test {
 
         // Refund the card (owner only)
         vm.prank(owner);
-        vymera.refund(cardId);
+        bymera.refund(cardId);
 
         // Check refund was processed
-        (, , , , bool refunded) = vymera.fundings(cardId);
+        (, , , , bool refunded) = bymera.fundings(cardId);
         assertTrue(refunded);
 
         // Check ETH was returned to user
         assertEq(user1.balance, 10e18); // Back to original amount
-        assertEq(address(vymera).balance, 0); // Contract has no ETH
+        assertEq(address(bymera).balance, 0); // Contract has no ETH
     }
 
     function testWithdrawNativeTokens() public {
@@ -408,7 +408,7 @@ contract VymeraTest is Test {
         // Fund the card with native token
         vm.deal(user1, 10e18);
         vm.prank(user1);
-        vymera.fund{value: nativeAmount}(
+        bymera.fund{value: nativeAmount}(
             cardId,
             address(0),
             nativeAmount,
@@ -417,15 +417,15 @@ contract VymeraTest is Test {
         );
 
         // Check contract has ETH
-        assertEq(address(vymera).balance, nativeAmount);
+        assertEq(address(bymera).balance, nativeAmount);
 
         // Withdraw native tokens as owner
         vm.prank(owner);
-        vymera.withdrawNative();
+        bymera.withdrawNative();
 
         // Check ETH was withdrawn to owner
         assertEq(owner.balance, nativeAmount);
-        assertEq(address(vymera).balance, 0);
+        assertEq(address(bymera).balance, 0);
     }
 
     function testWithdrawNativeTokensNonOwner() public {
@@ -435,7 +435,7 @@ contract VymeraTest is Test {
         // Fund the card with native token
         vm.deal(user1, 10e18);
         vm.prank(user1);
-        vymera.fund{value: nativeAmount}(
+        bymera.fund{value: nativeAmount}(
             cardId,
             address(0),
             nativeAmount,
@@ -446,7 +446,7 @@ contract VymeraTest is Test {
         // Try to withdraw as non-owner (should fail)
         vm.prank(user2);
         vm.expectRevert();
-        vymera.withdrawNative();
+        bymera.withdrawNative();
     }
 
     function testFundBothTokenTypes() public {
@@ -455,18 +455,18 @@ contract VymeraTest is Test {
 
         // Fund with ERC20 token
         vm.prank(user1);
-        vymera.fund(erc20CardId, address(token), 100e18, "SGD", 10000);
+        bymera.fund(erc20CardId, address(token), 100e18, "SGD", 10000);
 
         // Fund with native token
         vm.deal(user1, 10e18);
         vm.prank(user1);
-        vymera.fund{value: 1e18}(nativeCardId, address(0), 1e18, "USD", 20000);
+        bymera.fund{value: 1e18}(nativeCardId, address(0), 1e18, "USD", 20000);
 
         // Check both fundings are stored correctly
-        (, , uint256 erc20Amount, address erc20User, ) = vymera.fundings(
+        (, , uint256 erc20Amount, address erc20User, ) = bymera.fundings(
             erc20CardId
         );
-        (, , uint256 nativeAmount, address nativeUser, ) = vymera.fundings(
+        (, , uint256 nativeAmount, address nativeUser, ) = bymera.fundings(
             nativeCardId
         );
 
@@ -476,7 +476,7 @@ contract VymeraTest is Test {
         assertEq(nativeUser, user1);
 
         // Check balances
-        assertEq(token.balanceOf(address(vymera)), 100e18); // ERC20 tokens
-        assertEq(address(vymera).balance, 1e18); // Native tokens
+        assertEq(token.balanceOf(address(bymera)), 100e18); // ERC20 tokens
+        assertEq(address(bymera).balance, 1e18); // Native tokens
     }
 }

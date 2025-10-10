@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # API key for securing routes
     api_key: str = "changeme"
     # SQLite database file (project root)
-    database_url: str = "sqlite:///./vymera.db"
+    database_url: str = "sqlite:///./bymera.db"
     # Web3
     web3_provider_uri: str = "https://sepolia.base.org"
     contract_address: str = "0x6c197136E7B1B0CF13c721eF23be176557425BB2"
@@ -121,7 +121,7 @@ class LithicService:
         self.client = Lithic(api_key=api_key, environment=environment)
 
     def create_virtual_card(self, tx_sender: Optional[str]) -> Dict[str, Any]:
-        card = self.client.cards.create(type="VIRTUAL", memo=tx_sender or "Vymera User")
+        card = self.client.cards.create(type="VIRTUAL", memo=tx_sender or "Bymera User")
         # Convert to dict for serialization
         return {
             "token": getattr(card, "token", None),
@@ -332,7 +332,7 @@ class SimulateResponse(BaseModel):
 # -----------------------------
 
 
-app = FastAPI(title="Vymera Backend")
+app = FastAPI(title="Bymera Backend")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
