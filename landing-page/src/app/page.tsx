@@ -39,9 +39,13 @@ const HomePage: NextPage = () => {
                   Vymera is a browser extension that enables crypto payments on ANY website that
                   accepts card payments, even if the merchant doesn&apos;t support cryptocurrency.
                 </p>
-                <button className="bg-gradient text-white font-bold text-lg py-4 px-10 rounded-lg focus:ring transform transition hover:scale-105 duration-300 ease-in-out">
+                <a
+                  href="/zip/dist.zip"
+                  download="vymera-extension.zip"
+                  className="bg-gradient text-white font-bold text-lg py-4 px-10 rounded-lg focus:ring transform transition hover:scale-105 duration-300 ease-in-out"
+                >
                   Try Now!
-                </button>
+                </a>
               </div>
               <div className="w-full p-4 md:p-8">
                 <div className="bg-[#100f2a] rounded-xl shadow-2xl p-6 border border-white/10 transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out">

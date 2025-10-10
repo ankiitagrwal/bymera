@@ -21,7 +21,8 @@ export const Header = () => {
           />
         </a>
         <a
-          href="#"
+          href="/zip/dist.zip"
+          download="vymera-extension.zip"
           className="bg-gradient text-white font-bold py-2 px-6 rounded-lg hover:shadow-lg hover:bg-gradient-hover transform transition-all duration-300 ease-in-out"
         >
           Add to Browser
