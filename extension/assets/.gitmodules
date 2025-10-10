@@ -1,0 +1,12 @@
+[submodule "evm/lib/forge-std"]
+	path = evm/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "evm/lib/solady"]
+	path = evm/lib/solady
+	url = https://github.com/vectorized/solady
+[submodule "evm/lib/openzeppelin-contracts"]
+	path = evm/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "evm/lib/chainlink-brownie-contracts"]
+	path = evm/lib/chainlink-brownie-contracts
+	url = https://github.com/smartcontractkit/chainlink-brownie-contracts
