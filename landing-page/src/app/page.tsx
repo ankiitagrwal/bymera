@@ -2,8 +2,18 @@
 
 import type { NextPage } from 'next'
 import Image from 'next/image'
-import { ShieldCheck, Zap, Globe, Replace } from 'lucide-react'
+import {
+  ShieldCheck,
+  Zap,
+  Globe,
+  Replace,
+  BriefcaseBusiness,
+  Bitcoin,
+  UserRoundX,
+  Languages,
+} from 'lucide-react'
 import { FeatureCard } from '@/components/FeatureCard'
+import { PersonaCard } from '@/components/PersonaCard'
 import { Step } from '@/components/Step'
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
@@ -73,6 +83,41 @@ const HomePage: NextPage = () => {
                 icon={<Globe />}
                 title="Works Everywhere"
                 description="No merchant integration is required. If a site accepts cards, it works with Vymera."
+              />
+            </div>
+          </section>
+
+          <section
+            id="who-is-it-for"
+            className="py-20"
+          >
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Who is Vymera For?</h2>
+              <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+                Vymera empowers a global community with seamless, secure, and accessible payment
+                solutions.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <PersonaCard
+                icon={<BriefcaseBusiness size={40} />}
+                title="Digital Nomads & Travelers"
+                description="35M+ remote workers need flexible payment options without geographical limits."
+              />
+              <PersonaCard
+                icon={<Bitcoin size={40} />}
+                title="Crypto Natives"
+                description="560M+ crypto owners can finally use their assets for everyday purchases."
+              />
+              <PersonaCard
+                icon={<UserRoundX size={40} />}
+                title="The Unbanked"
+                description="1.4B adults without bank accounts gain access to the digital economy."
+              />
+              <PersonaCard
+                icon={<Languages size={40} />}
+                title="International Users"
+                description="Avoid 2–5% forex fees and poor exchange rates on cross-border payments."
               />
             </div>
           </section>
