@@ -1,4 +1,6 @@
+import { BASE_CHAIN_SEPOLIA_BASE_URL, MAIN_CONTRACT_ADDRESS } from '@/constants'
 import Image from 'next/image'
+import Link from 'next/link'
 
 export const Header = () => {
   return (
@@ -20,13 +22,21 @@ export const Header = () => {
             height={24}
           />
         </a>
-        <a
+        <Link
           href="/zip/dist.zip"
           download="bymera-extension.zip"
           className="bg-gradient text-white font-bold py-2 px-6 rounded-lg hover:shadow-lg hover:bg-gradient-hover transform transition-all duration-300 ease-in-out"
         >
-          Add to Browser
-        </a>
+          Download Bymera Extension
+        </Link>
+
+        <Link
+          href={`${BASE_CHAIN_SEPOLIA_BASE_URL}/${MAIN_CONTRACT_ADDRESS}`}
+          target="_blank"
+          className="bg-gradient text-white font-bold py-2 px-6 rounded-lg hover:shadow-lg hover:bg-gradient-hover transform transition-all duration-300 ease-in-out"
+        >
+          View Contract on Basescan
+        </Link>
       </div>
     </header>
   )

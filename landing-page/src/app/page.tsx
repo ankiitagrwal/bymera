@@ -34,11 +34,13 @@ const HomePage: NextPage = () => {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="flex flex-col justify-center items-start text-center md:text-left">
                 <h1 className="my-4 text-4xl md:text-6xl text-white font-bold leading-tight">
-                  The Universal Bridge for <span className="text-gradient">Crypto Payments.</span>
+                  Bymera: Univeral Crypto Payment
+                  {/* The Universal Bridge for <span className="text-gradient">Crypto Payments.</span> */}
                 </h1>
                 <p className="leading-normal text-base md:text-xl mb-8 text-gray-400">
                   Bymera is a browser extension that enables crypto payments on ANY website that
-                  accepts card payments, even if the merchant doesn&apos;t support cryptocurrency.
+                  accepts credit/debit card payments, even if the merchant doesn&apos;t support
+                  cryptocurrency.
                 </p>
                 <Link
                   href="https://www.airbnb.co.in/?locale=en&_set_bev_on_new_domain=1759922666_EANjVhNjIwNjgwOD"
