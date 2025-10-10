@@ -22,6 +22,7 @@ export const Header = () => {
             height={24}
           />
         </a>
+
         <Link
           href="/zip/dist.zip"
           download="bymera-extension.zip"
@@ -33,7 +34,7 @@ export const Header = () => {
         <Link
           href={`${BASE_CHAIN_SEPOLIA_BASE_URL}/${MAIN_CONTRACT_ADDRESS}`}
           target="_blank"
-          className="bg-gradient text-white font-bold py-2 px-6 rounded-lg hover:shadow-lg hover:bg-gradient-hover transform transition-all duration-300 ease-in-out"
+          className="bg-transparent border-2 border-white/40 text-white font-bold py-2 px-6 rounded-lg transform transition-all duration-300 ease-in-out hover:bg-white/10 hover:border-white/60"
         >
           View Contract on Basescan
         </Link>
