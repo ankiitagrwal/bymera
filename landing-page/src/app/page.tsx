@@ -1,6 +1,7 @@
 'use client'
 
 import type { NextPage } from 'next'
+import Link from 'next/link'
 import Image from 'next/image'
 import {
   ShieldCheck,
@@ -39,13 +40,13 @@ const HomePage: NextPage = () => {
                   Bymera is a browser extension that enables crypto payments on ANY website that
                   accepts card payments, even if the merchant doesn&apos;t support cryptocurrency.
                 </p>
-                <a
-                  href="/zip/dist.zip"
-                  download="bymera-extension.zip"
+                <Link
+                  href="https://www.airbnb.co.in/?locale=en&_set_bev_on_new_domain=1759922666_EANjVhNjIwNjgwOD"
+                  target="_blank"
                   className="bg-gradient text-white font-bold text-lg py-4 px-10 rounded-lg focus:ring transform transition hover:scale-105 duration-300 ease-in-out"
                 >
                   Try Now!
-                </a>
+                </Link>
               </div>
               <div className="w-full p-4 md:p-8">
                 <div className="bg-[#100f2a] rounded-xl shadow-2xl p-6 border border-white/10 transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out">
