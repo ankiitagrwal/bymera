@@ -143,3 +143,14 @@ body {
 .bg-gradient-hover {
   background: linear-gradient(45deg, #d3b9e0, #554db2);
 }
+
+.embla {
+  overflow: hidden;
+}
+.embla__container {
+  display: flex;
+}
+.embla__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}

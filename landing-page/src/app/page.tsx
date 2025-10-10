@@ -7,8 +7,11 @@ import { FeatureCard } from '@/components/FeatureCard'
 import { Step } from '@/components/Step'
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
+import { ImageSlider } from '@/components/ImageSlider'
 
 const HomePage: NextPage = () => {
+  const screenshots = ['/images/screenshot1.png', '/images/screenshot2.png']
+
   return (
     <>
       <div className="leading-normal tracking-normal min-h-screen font-sans">
@@ -30,19 +33,8 @@ const HomePage: NextPage = () => {
                 </button>
               </div>
               <div className="w-full p-4 md:p-8">
-                <div className="bg-[#100f2a] rounded-xl shadow-2xl p-6 border border-white/10 transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out flex gap-3">
-                  <Image
-                    src="/images/screenshot1.png"
-                    width={300}
-                    height={800}
-                    alt="screenshot 1"
-                  />
-                  <Image
-                    src="/images/screenshot2.png"
-                    width={300}
-                    height={800}
-                    alt="screenshot 2"
-                  />
+                <div className="bg-[#100f2a] rounded-xl shadow-2xl p-6 border border-white/10 transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out">
+                  <ImageSlider slides={screenshots} />
                 </div>
               </div>
             </div>
