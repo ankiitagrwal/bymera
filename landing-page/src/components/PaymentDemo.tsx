@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CheckCircle2, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -10,22 +10,46 @@ type LoadingState = 'metaMask' | 'walletConnect' | 'pay' | null
 export const PaymentDemo = () => {
   const [step, setStep] = useState<PaymentStep>('connect')
   const [loading, setLoading] = useState<LoadingState>(null)
+  const autoRunTimer = useRef<NodeJS.Timeout | null>(null)
+
+  const proceedToStep = (nextStep: PaymentStep, delay: number) => {
+    return setTimeout(() => {
+      setStep(nextStep)
+      setLoading(null)
+    }, delay)
+  }
 
   const handleConnect = (wallet: 'metaMask' | 'walletConnect') => {
+    if (autoRunTimer.current) clearTimeout(autoRunTimer.current) // Cancel auto-run
     setLoading(wallet)
-    setTimeout(() => {
-      setStep('pay')
-      setLoading(null)
-    }, 1500)
+    proceedToStep('pay', 1500)
   }
 
   const handlePay = () => {
+    if (autoRunTimer.current) clearTimeout(autoRunTimer.current) // Cancel auto-run
     setLoading('pay')
-    setTimeout(() => {
-      setStep('success')
-      setLoading(null)
-    }, 2000)
+    proceedToStep('success', 2000)
   }
+
+  useEffect(() => {
+    if (autoRunTimer.current) clearTimeout(autoRunTimer.current)
+
+    switch (step) {
+      case 'connect':
+        autoRunTimer.current = setTimeout(() => handleConnect('metaMask'), 4000)
+        break
+      case 'pay':
+        autoRunTimer.current = setTimeout(handlePay, 4000)
+        break
+      case 'success':
+        autoRunTimer.current = setTimeout(() => setStep('connect'), 3000)
+        break
+    }
+
+    return () => {
+      if (autoRunTimer.current) clearTimeout(autoRunTimer.current)
+    }
+  }, [step])
 
   const renderContent = () => {
     switch (step) {
