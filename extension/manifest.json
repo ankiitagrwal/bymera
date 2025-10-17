@@ -10,6 +10,7 @@
         "offscreen"
     ],
     "host_permissions": [
+        "https://*.vercel.app/*",
         "https://*.airbnb.com/*",
         "https://*.airbnb.co.uk/*",
         "https://*.airbnb.ca/*",
@@ -37,6 +38,7 @@
     "content_scripts": [
         {
             "matches": [
+                "https://*.vercel.app/*",
                 "https://*.airbnb.com/*",
                 "https://*.airbnb.co.uk/*",
                 "https://*.airbnb.ca/*",

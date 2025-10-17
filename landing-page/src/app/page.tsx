@@ -43,7 +43,7 @@ const HomePage: NextPage = () => {
                   cryptocurrency.
                 </p>
                 <Link
-                  href="https://www.airbnb.co.in/?locale=en&_set_bev_on_new_domain=1759922666_EANjVhNjIwNjgwOD"
+                  href="https://eshop-omega-two.vercel.app/"
                   target="_blank"
                   className="bg-gradient text-white font-bold text-lg py-4 px-10 rounded-lg focus:ring transform transition hover:scale-105 duration-300 ease-in-out"
                 >

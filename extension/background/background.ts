@@ -5,7 +5,7 @@ import { PaymentRequest, VirtualCard } from '../../shared/types';
 class BymeraBackground {
     private currentPayment: PaymentRequest | null = null;
     private offscreenDocumentPath = 'offscreen.html';
-    private backendUrl = 'http://localhost:3000'; // In production, update this to your backend URL
+    private backendUrl = 'http://127.0.0.1:8000'; // In production, update this to your backend URL
 
     constructor() {
         this.setupListeners();

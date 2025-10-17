@@ -1,4 +1,88 @@
 // extension/content/content.ts
+// ====== TOP-FRAME BRIDGE (creates the drawer in window.top) ======
+(function setupBymeraTopBridge() {
+  if (window.__bymeraTopBridge) return;
+  window.__bymeraTopBridge = true;
+
+  window.addEventListener('message', (ev) => {
+    if (!ev.data || ev.data.type !== 'BYMERA_OPEN_DRAWER') return;
+
+    // host element immune to page CSS
+    const host = document.createElement('div');
+    host.setAttribute('data-bymera-drawer-host','1');
+    host.style.all = 'initial';
+    host.style.position = 'fixed';
+    host.style.inset = '0';
+    host.style.zIndex = '2147483647';
+    const shadow = host.attachShadow({ mode:'open' });
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .scrim{position:fixed;inset:0;background:rgba(0,0,0,.28)}
+      .panel{position:fixed;right:0;top:0;height:100vh;width:min(420px,100vw);
+        background:#fff;border-left:1px solid #e5e7eb;box-shadow:-12px 0 32px rgba(0,0,0,.12);
+        overflow:auto;padding:16px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
+      .close{position:absolute;top:10px;right:12px;border:0;background:transparent;cursor:pointer;font-size:20px;color:#6b7280}
+    `;
+    shadow.appendChild(style);
+
+    const scrim = document.createElement('div');
+    scrim.className = 'scrim';
+    scrim.addEventListener('click', () => host.remove());
+
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+
+    const close = document.createElement('button');
+    close.className = 'close';
+    close.textContent = '×';
+    close.addEventListener('click', () => host.remove());
+    panel.appendChild(close);
+
+    // render markup sent from the checkout frame
+    panel.insertAdjacentHTML('beforeend', ev.data.html);
+
+    // simple action relay back to the source frame
+    panel.addEventListener('click', (e) => {
+      const t = e.target;
+      const action = t.closest('[data-bymera-action]');
+      if (action) {
+        ev.source?.postMessage({ type:'BYMERA_ACTION', action: action.dataset.bymeraAction }, '*');
+      }
+    });
+
+    shadow.appendChild(scrim);
+    shadow.appendChild(panel);
+    document.body.appendChild(host);
+  });
+})();
+    let drawerReady = false;
+    window.addEventListener('message', e => { if (e.data?.type === 'BYMERA_DRAWER_READY') drawerReady = true; });
+
+    function appendToast(node) {
+    if (drawerReady) {
+        window.top?.postMessage({ type: 'BYMERA_TOAST', html: node.innerHTML }, '*');
+    } else {
+        document.body.appendChild(node);
+    }
+    }
+    window.addEventListener('message', (e) => {
+  if (e.data?.type === 'BYMERA_CLOSE_DRAWER') {
+    document.querySelector('[data-bymera-drawer-host]')?.remove();
+  }
+
+  if (e.data?.type === 'BYMERA_TOAST') {
+    const t = document.createElement('div');
+    t.textContent = e.data.text || 'Success';
+    t.style.cssText = `
+      position:fixed; top:20px; right:20px; z-index:2147483647;
+      background:#e8f7ee; border:1px solid #b7e2c6; color:#0f5132;
+      padding:12px 16px; border-radius:12px; font-weight:600; box-shadow:0 6px 24px rgba(0,0,0,.12)
+    `;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2200);
+  }
+});
 class BymeraInjector {
     observer = null;
     buttonInjected = false;
@@ -7,15 +91,13 @@ class BymeraInjector {
         this.init();
     }
     init() {
-        console.log("[Bymera] Extension initialized on:", window.location.href);
-        console.log("[Bymera] Current URL pathname:", window.location.pathname);
-        console.log("[Bymera] Is booking URL:", window.location.pathname.includes("/book/"));
         this.injectWalletConnector();
         this.showTestIndicator();
         this.observePageChanges();
         this.checkForCheckoutPage();
-        if (window.location.pathname.includes("/book/")) {
-            console.log("[Bymera] On booking page, trying to inject toggle immediately...");
+        if (window.location.pathname.includes("/book/") || 
+            window.location.pathname.includes("/checkout")) {
+            console.log("[Bymera] On checkout page, trying to inject toggle immediately...");
             setTimeout(() => {
                 this.injectCryptoToggle();
             }, 1000);
@@ -28,7 +110,7 @@ class BymeraInjector {
                 console.log("[Bymera] Periodic check - button not injected yet");
                 this.checkForCheckoutPage();
             }
-        }, 2000);
+        }, 5000);
     }
     injectWalletConnector() {
         console.log("[Bymera] Injecting wallet connector script...");
@@ -85,10 +167,14 @@ class BymeraInjector {
         }, 3000);
     }
     observePageChanges() {
+        let mutationTimer = null;
         this.observer = new MutationObserver(() => {
-            if (!this.checkoutDetected) {
-                this.checkForCheckoutPage();
-            }
+            if (mutationTimer) clearTimeout(mutationTimer);
+            mutationTimer = setTimeout(() => {
+                if (!this.checkoutDetected) {
+                    this.checkForCheckoutPage();
+                }
+            }, 300);
         });
         this.observer.observe(document.body, {
             childList: true,
@@ -97,11 +183,13 @@ class BymeraInjector {
     }
     checkForCheckoutPage() {
         const isBookingUrl = window.location.pathname.includes("/book/");
-        console.log("[Bymera] Checking for checkout page...");
-        console.log("[Bymera] Is booking URL:", isBookingUrl);
+        const isCartCheckout = window.location.pathname.includes("/checkout");
         console.log("[Bymera] Current URL:", window.location.href);
         if (isBookingUrl) {
             console.log("[Bymera] Detected booking URL, looking for checkout elements...");
+        }
+        if (isCartCheckout) {
+            console.log("[Bymera] Detected cart checkout URL, looking for checkout elements...");
         }
         const checkoutSelectors = [
             '[data-testid="book-it-default"]',
@@ -111,13 +199,20 @@ class BymeraInjector {
             'div[aria-label*="payment"]',
             'div[class*="payment-section"]',
             'div[class*="checkout"]',
+            'div[class*="cart-checkout"]',
             'h2:has-text("Confirm and pay")',
             'h1:has-text("Confirm and pay")',
             'button:contains("Confirm and pay")',
             'h1:contains("Confirm and pay")',
-            'h2:contains("Confirm and pay")'
+            'h2:contains("Confirm and pay")',
+            'h1:contains("Checkout")',
+            'h2:contains("Checkout")',
+            'button:contains("Place Order")',
+            'button:contains("Complete Purchase")',
+            'button[id*="checkout"]',
+            'form[action*="checkout"]'
         ];
-        let isCheckout = isBookingUrl;
+        let isCheckout = isBookingUrl || isCartCheckout;
         if (!isCheckout) {
             isCheckout = checkoutSelectors.some((selector) => {
                 try {
@@ -206,16 +301,8 @@ class BymeraInjector {
             }
         }
         if (!workTripToggle) {
-            console.log("[Bymera] Still no work trip toggle found, trying to inject at a different location...");
-            const anyToggle = document.querySelector('[role="switch"], [data-testid*="switch"], [class*="switch"]');
-            if (anyToggle) {
-                console.log("[Bymera] Found alternative toggle element:", anyToggle);
-                workTripToggle = anyToggle;
-            } else {
-                console.log("[Bymera] No suitable injection point found, trying fallback injection...");
-                this.injectCryptoToggleFallback();
-                return;
-            }
+            console.log("[Bymera] Still no work trip toggle found, using document.body as fallback...");
+            workTripToggle = document.body;
         }
         console.log("[Bymera] Found work trip toggle, creating custom crypto toggle...", workTripToggle);
         const cryptoToggle = document.createElement("div");
@@ -232,6 +319,7 @@ class BymeraInjector {
             border-top-style: solid;
             border-top-color: lightgray;
             border-top-width: 1px;
+            background: transparent;
         `;
         const titleDiv = document.createElement("div");
         titleDiv.className = "t41l3z9 atm_c8_9oan3l atm_g3_1dzntr8 atm_cs_18jqzaw dir dir-ltr";
@@ -275,99 +363,74 @@ class BymeraInjector {
         toggleButton.appendChild(toggleKnob);
         cryptoToggle.appendChild(titleDiv);
         cryptoToggle.appendChild(toggleButton);
-        workTripToggle.parentElement?.insertBefore(cryptoToggle, workTripToggle.nextSibling);
+        
+        if (workTripToggle === document.body) {
+            console.log("[Bymera] Injecting toggle as floating element on body");
+            // Override all existing styles for floating popup
+            cryptoToggle.style.cssText = `
+                position: fixed !important;
+                top: 120px !important;
+                right: 20px !important;
+                background: white !important;
+                border: 1px solid #e9ecef !important;
+                border-radius: 12px !important;
+                padding: 16px !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                z-index: 10000 !important;
+                min-width: 200px !important;
+                max-width: 300px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 16px !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            `;
+            document.body.appendChild(cryptoToggle);
+            console.log("[Bymera] Toggle added to body:", cryptoToggle);
+        } else {
+            console.log("[Bymera] Injecting toggle next to work trip element:", workTripToggle);
+            workTripToggle.parentElement?.insertBefore(cryptoToggle, workTripToggle.nextSibling);
+            console.log("[Bymera] Toggle added next to work trip toggle");
+        }
+        
         this.setupToggleFunctionality(cryptoToggle);
         console.log("[Bymera] Custom crypto toggle added successfully");
         this.showSuccessIndicator();
     }
-    injectCryptoToggleFallback() {
-        console.log("[Bymera] Using fallback injection method...");
-        const possibleInjectionPoints = [
-            'div[class*="payment"]',
-            'div[class*="checkout"]',
-            'div[class*="booking"]',
-            'div[aria-label*="payment"]',
-            'div[data-testid*="payment"]',
-            'div[data-testid*="checkout"]',
-            'div[data-testid*="booking"]'
-        ];
-        let injectionPoint = null;
-        for (const selector of possibleInjectionPoints) {
-            const element = document.querySelector(selector);
-            if (element) {
-                console.log("[Bymera] Found injection point with selector:", selector);
-                injectionPoint = element;
-                break;
-            }
-        }
-        if (!injectionPoint) {
-            console.log("[Bymera] No injection point found, injecting at body");
-            injectionPoint = document.body;
-        }
-        const cryptoToggle = document.createElement("div");
-        cryptoToggle.className = "bymera-crypto-toggle";
-        cryptoToggle.setAttribute("data-bymera-crypto-toggle", "true");
-        cryptoToggle.style.cssText = `
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px 0;
-            position: relative;
-            z-index: 1000;
-        `;
-        cryptoToggle.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <img src="https://bscscan.com/assets/bsc/images/svg/logos/token-light.svg?v=25.9.4.0" alt="BNB Token" style="width: 24px; height: 24px; border-radius: 4px; object-fit: contain;">
-                <div>
-                    <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #fff;">Pay with crypto</h3>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">Secure BNB payment</p>
-                </div>
-            </div>
-            <button id="bymera-crypto-toggle-button" style="
-                width: 100%;
-                background: #297561;
-                color: #000;
-                border: none;
-                border-radius: 6px;
-                padding: 12px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: background-color 0.2s ease;
-            ">Connect Wallet</button>
-        `;
-        if (injectionPoint === document.body) {
-            injectionPoint.appendChild(cryptoToggle);
-        } else {
-            injectionPoint.insertBefore(cryptoToggle, injectionPoint.firstChild);
-        }
-        const toggleButton = cryptoToggle.querySelector("#bymera-crypto-toggle-button");
-        toggleButton.addEventListener("click", async () => {
-            try {
-                await this.connectWallet();
-                console.log("[Bymera] Wallet connected via fallback method");
-                toggleButton.textContent = "Wallet Connected \u2713";
-                toggleButton.style.background = "#4CAF50";
-                toggleButton.style.color = "white";
-            } catch (error) {
-                console.error("[Bymera] Wallet connection failed:", error);
-                toggleButton.textContent = "Connection Failed";
-                toggleButton.style.background = "#f44336";
-                toggleButton.style.color = "white";
-                setTimeout(() => {
-                    toggleButton.textContent = "Connect Wallet";
-                    toggleButton.style.background = "#297561";
-                    toggleButton.style.color = "#000";
-                }, 3000);
-            }
-        });
-        console.log("[Bymera] Fallback crypto toggle added successfully");
-        this.showSuccessIndicator();
-    }
     setupToggleFunctionality(cryptoToggle) {
+        console.log("[Bymera] Setting up toggle functionality...");
         const toggleButton = cryptoToggle.querySelector(".bymera-crypto-switch");
         const toggleKnob = cryptoToggle.querySelector(".bymera-crypto-switch > div");
+        
+        console.log("[Bymera] Toggle button found:", !!toggleButton);
+        console.log("[Bymera] Toggle knob found:", !!toggleKnob);
+        
+        if (!toggleButton || !toggleKnob) {
+            console.error("[Bymera] Toggle elements not found! Button:", toggleButton, "Knob:", toggleKnob);
+            return;
+        }
+        // create a small loader in the knob and global keyframes if missing
+        if (!document.querySelector('#bymera-toggle-spinner-style')) {
+            const s = document.createElement('style');
+            s.id = 'bymera-toggle-spinner-style';
+            s.textContent = `
+            @keyframes bymera-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            .bymera-toggle-loader { width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box;
+                border: 2px solid rgba(0,0,0,0.08); border-top-color: #297561; position: fixed; transform: translateY(-50%);
+                animation: bymera-spin 0.9s linear infinite; display: none; z-index: 2147483647; }         
+            `;
+            document.head.appendChild(s);
+        }
+
+    // Create or reuse a single fixed-position loader appended to body (simpler, avoids clipping)
+    let loader = document.querySelector('#bymera-toggle-loader-fixed');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'bymera-toggle-loader-fixed';
+        loader.className = 'bymera-toggle-loader';
+        loader.style.display = 'none';
+        document.body.appendChild(loader);
+    }
+
         let isCryptoEnabled = false;
         let originalPaymentSection = null;
         const updateToggle = async (enabled) => {
@@ -409,19 +472,55 @@ class BymeraInjector {
             if (!originalPaymentSection) {
                 originalPaymentSection = this.findPaymentSection();
             }
-            if (enabled && originalPaymentSection) {
-                if (!originalPaymentSection.dataset.originalContent) {
-                    originalPaymentSection.dataset.originalContent = originalPaymentSection.innerHTML;
+            if (enabled) {
+                if (originalPaymentSection) {
+                    if (!originalPaymentSection.dataset.originalContent) {
+                        originalPaymentSection.dataset.originalContent = originalPaymentSection.innerHTML;
+                    }
+                    await this.showCryptoPaymentOptions(originalPaymentSection);
+                } else {
+                    console.log("[Bymera] No payment section found, showing crypto options in drawer without replacement");
+                    await this.showCryptoPaymentOptions(null);
                 }
-                await this.showCryptoPaymentOptions(originalPaymentSection);
             } else if (originalPaymentSection) {
                 this.hideCryptoPaymentOptions(originalPaymentSection);
             }
         };
-        toggleButton.addEventListener("click", (e) => {
+        toggleButton.addEventListener("click", async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            updateToggle(!isCryptoEnabled);
+            // prevent double clicks while loading
+            if (toggleButton.disabled) return;
+            try {
+                // show loader and mark busy for accessibility (position next to toggle)
+                console.log('[Bymera] Showing toggle loader');
+                const rect = toggleButton.getBoundingClientRect();
+                const left = rect.right + 8; // 8px gap from toggle
+                const top = rect.top + rect.height / 2; // vertical center
+                loader.style.left = `${left}px`;
+                loader.style.top = `${top}px`;
+                loader.style.display = 'block';
+                toggleButton.setAttribute('aria-busy', 'true');
+                toggleButton.disabled = true;
+                // hide existing tick while loading
+                const existingTick = toggleKnob.querySelector('.tick-mark');
+                if (existingTick) existingTick.style.display = 'none';
+
+                await updateToggle(!isCryptoEnabled);
+            } catch (err) {
+                console.error('[Bymera] Error while toggling:', err);
+            } finally {
+                // hide loader and re-enable
+                console.log('[Bymera] Hiding toggle loader');
+                loader.style.display = 'none';
+                const fallbackHide = document.querySelector('#bymera-toggle-loader-fixed');
+                if (fallbackHide) fallbackHide.style.display = 'none';
+                toggleButton.removeAttribute('aria-busy');
+                toggleButton.disabled = false;
+                // ensure tick visibility matches state
+                const finalTick = toggleKnob.querySelector('.tick-mark');
+                if (finalTick) finalTick.style.display = isCryptoEnabled ? '' : 'none';
+            }
         });
     }
     findPaymentSection() {
@@ -606,8 +705,8 @@ class BymeraInjector {
                     console.log("[Bymera] Account:", event.detail.account);
                     console.log("[Bymera] Chain ID:", event.detail.chainId);
                     this.connectedAccount = event.detail.account;
-                    if (event.detail.chainId !== "0x38") {
-                        this.switchToBSCNetwork().then(() => resolve()).catch(reject);
+                    if (event.detail.chainId !== "0x14a34") {
+                        this.switchToBaseSepolia().then(() => resolve()).catch(reject);
                     } else {
                         resolve();
                     }
@@ -625,8 +724,8 @@ class BymeraInjector {
             }, 30000);
         });
     }
-    async switchToBSCNetwork() {
-        console.log("[Bymera] Attempting to switch to BSC network...");
+    async switchToBaseSepolia() {
+        console.log("[Bymera] Attempting to switch to Base Sepolia network...");
         return new Promise((resolve, reject) => {
             const handleResponse = (event) => {
                 console.log("[Bymera] Received network switch response:", event.detail);
@@ -781,7 +880,23 @@ class BymeraInjector {
             'button:contains("Confirm and pay")',
             'button[aria-label*="Confirm and pay"]',
             'button[data-testid*="confirm"]',
+            'button:contains("Place Order")',
+            'button:contains("Complete Purchase")',
+            'button:contains("Checkout")',
+            'button:contains("Pay Now")',
+            'button:contains("Complete Order")',
+            'button:contains("Finish Order")',
+            'button:contains("Submit Order")',
+            'button:contains("Buy Now")',
             'button[type="submit"][class*="primary"]',
+            'button[type="submit"][class*="checkout"]',
+            'button[type="submit"][class*="payment"]',
+            'button[type="submit"][class*="order"]',
+            'button[id*="checkout"]',
+            'button[id*="purchase"]',
+            'button[id*="order"]',
+            'button[id*="payment"]',
+            'input[type="submit"]',
             'button[type="submit"]'
         ];
         let confirmButton = null;
@@ -796,8 +911,14 @@ class BymeraInjector {
                     }
                 } else {
                     const elements = document.querySelectorAll(selector);
-                    confirmButton = Array.from(elements).find((el) => el.textContent?.toLowerCase().includes("confirm and pay"));
-                    if (!confirmButton && elements.length > 0) {
+                    // For generic selectors, find buttons with checkout-related text
+                    const checkoutTexts = ["confirm and pay", "place order", "complete purchase", "checkout", "pay now", "complete order", "finish order", "submit order", "buy now"];
+                    confirmButton = Array.from(elements).find((el) => {
+                        const text = el.textContent?.toLowerCase() || "";
+                        return checkoutTexts.some(checkoutText => text.includes(checkoutText));
+                    });
+                    // If no specific checkout text found, use the first submit button as fallback
+                    if (!confirmButton && elements.length > 0 && selector.includes('type="submit"')) {
                         confirmButton = elements[0];
                     }
                 }
@@ -811,6 +932,17 @@ class BymeraInjector {
         }
         if (!confirmButton) {
             console.log("[Bymera] Confirm and pay button not found yet");
+            console.log("[Bymera] Available buttons on page:");
+            const allButtons = document.querySelectorAll('button, input[type="submit"]');
+            allButtons.forEach((btn, index) => {
+                console.log(`[Bymera] Button ${index + 1}:`, {
+                    text: btn.textContent?.trim(),
+                    type: btn.type,
+                    id: btn.id,
+                    className: btn.className,
+                    tagName: btn.tagName
+                });
+            });
             return;
         }
         console.log("[Bymera] Found Confirm and pay button, replacing...");
@@ -839,7 +971,7 @@ class BymeraInjector {
                 console.log("[Bymera] Wallet not connected, connecting...");
                 await this.connectWallet();
             }
-            const calculation = await this.calculateBNBAmount();
+            const calculation = await this.calculateETHAmount();
             console.log("[Bymera] Payment calculation:", calculation);
             if (!this.connectedAccount) {
                 const accounts = await new Promise((resolve) => {
@@ -859,9 +991,9 @@ class BymeraInjector {
                 }
             }
             // Bymera contract address (same on all supported chains)
-            const bymeraContract = "0x9cb048e45aAA295Ebb4a9b3dEcb05c529C4C6D88";
-            const bnbAsNumber = parseFloat(calculation.bnbAmount);
-            const weiAmount = BigInt(Math.floor(bnbAsNumber * Math.pow(10, 18)));
+            const bymeraContract = "0x6c197136E7B1B0CF13c721eF23be176557425BB2";
+            const ethAsNumber = parseFloat(calculation.ethAmount); // Note: keeping ethAmount property name for compatibility
+            const weiAmount = BigInt(Math.floor(ethAsNumber * Math.pow(10, 18)));
 
             // Generate unique ID for this payment through backend API
             const paymentId = await this.generateFundingId();
@@ -871,7 +1003,7 @@ class BymeraInjector {
 
             // Prepare fund() function call data
             // fund(uint256 _id, address _tokenAddress, uint256 _tokenAmount, string _currencyCode, uint256 _fiatAmount)
-            // This is a PAYABLE function - we send BNB value with the transaction
+            // This is a PAYABLE function - we send ETH value with the transaction
             // Function selector 0x0cca551c for fund(uint256,address,uint256,string,uint256)
             const functionSelector = this.calculateFunctionSelector("fund(uint256,address,uint256,string,uint256)");
 
@@ -881,7 +1013,7 @@ class BymeraInjector {
             // Encode parameters
             const encodedParams = this.encodeFundParams(
                 paymentId,
-                "0x0000000000000000000000000000000000000000", // address(0) for native BNB
+                "0x0000000000000000000000000000000000000000", // address(0) for native ETH
                 weiAmount,
                 currencyCode,
                 fiatAmountInCents
@@ -903,8 +1035,8 @@ class BymeraInjector {
                 currentNetwork = networkNames[currentChainId] || `Chain ${parseInt(currentChainId, 16)}`;
             } catch (error) {
                 console.warn("[Bymera] Could not get current chain ID:", error);
-                currentChainId = '0x38'; // Default to BSC
-                currentNetwork = 'BNB Smart Chain';
+                currentChainId = '0x14a34'; // Default to Base Sepolia
+                currentNetwork = 'Base Sepolia';
             }
 
             console.log("[Bymera] Calling fund() on contract:", {
@@ -988,7 +1120,7 @@ class BymeraInjector {
                 '0xa4ec': `https://explorer.celo.org/tx/${txHash}`,
                 '0x504': `https://moonbeam.moonscan.io/tx/${txHash}`
             };
-            const explorerUrl = explorerUrls[currentChainId] || `https://bscscan.com/tx/${txHash}`;
+            const explorerUrl = explorerUrls[currentChainId] || `https://base-sepolia.blockscout.com/tx/${txHash}`;
             const explorerName = currentNetwork.includes('Base') ? 'Blockscout' :
                                 currentNetwork.includes('BSC') ? 'BSCScan' : 
                                 currentNetwork.includes('TAC') ? 'TAC Explorer' :
@@ -1001,9 +1133,10 @@ class BymeraInjector {
                 <small>Hash: ${txHash.substring(0, 10)}...${txHash.substring(58)}</small><br>
                 <a href="${explorerUrl}" target="_blank" style="color: #333; text-decoration: underline;">View on ${explorerName}</a>
             `;
-            document.body.appendChild(processingMessage);
+            // document.body.appendChild(processingMessage);
+            appendToast(processingMessage);
             setTimeout(() => {
-                console.log("[Bymera] Simulating transaction confirmation...");
+                console.log("[Bymera] Simulatfing transaction confirmation...");
                 processingMessage.innerHTML = "\u2713 Transaction confirmed!<br><small>Processing payment...</small>";
                 processingMessage.style.background = "rgba(255, 152, 0, 0.1)";
                 processingMessage.style.borderColor = "rgba(255, 152, 0, 0.3)";
@@ -1128,8 +1261,82 @@ class BymeraInjector {
         console.log("[Bymera] Test encoding result:", encoded);
         console.log("[Bymera] Expected result should match your data");
     }
+    
+    // Renders any element in a right-side drawer using Shadow DOM (immune to host CSS)
+    openCryptoDrawer(content) {
+        // remove an existing drawer
+        document.querySelector('[data-bymera-drawer-host]')?.remove();
+
+        const host = document.createElement('div');
+        host.setAttribute('data-bymera-drawer-host', '1');
+        host.style.all = 'initial';          // neutralize host page CSS
+        host.style.position = 'fixed';
+        host.style.top = '0';
+        host.style.right = '0';
+        host.style.width = 'min(420px, 100vw)';
+        host.style.height = '100vh';
+        host.style.zIndex = '2147483647';    // be on top
+        host.style.pointerEvents = 'auto';
+
+        const shadow = host.attachShadow({ mode: 'open' });
+        window.postMessage({ type: 'BYMERA_DRAWER_READY' }, '*');   
+
+        const style = document.createElement('style');
+        style.textContent = `
+            :host { all: initial; }
+            .scrim {
+            position: fixed; inset: 0; background: rgba(0,0,0,.28);
+            animation: fade .16s ease-out;
+            }
+            .panel {
+            position: fixed; top: 0; right: 0; height: 100vh; width: min(420px, 100vw);
+            background:#fff; border-left:1px solid #e5e7eb; box-shadow: -12px 0 32px rgba(0,0,0,.12);
+            display:flex; flex-direction:column; padding:16px; overflow:auto;
+            font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+            animation: slide .18s ease-out;
+            }
+            .close {
+            position:absolute; top:10px; right:12px; border:0; background:transparent; cursor:pointer;
+            font-size:20px; line-height:1; color:#6b7280;
+            }
+            /* minimal layout polish for your existing markup */
+            .bymera-crypto-payment{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; }
+            .bymera-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+            .wallet{ display:inline-flex; gap:8px; padding:6px 10px; border:1px solid #e5e7eb; background:#f8fafc;
+            border-radius:999px; font-size:12px; color:#6b7280; }
+            .bymera-token-dropdown{ border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff; }
+            .bymera-token-options{ border-radius:12px; }
+            .bymera-payment-summary{ margin-top:14px; border:1px solid #e5e7eb; background:#f8fafc; border-radius:12px; padding:12px; }
+            .bymera-payment-summary .row{ display:flex; justify-content:space-between; padding:6px 0; font-size:13px; color:#6b7280; }
+            .bymera-payment-summary .row.total{ border-top:1px solid #e5e7eb; margin-top:8px; padding-top:12px; font-weight:700; color:#111827; }
+            .bymera-crypto-payment button{ border-radius:12px !important; }
+            @keyframes slide{ from{ transform: translateX(16px); opacity: .8 } to{ transform:none; opacity:1 } }
+            @keyframes fade{ from{ opacity: 0 } to{ opacity: 1 } }
+        `;
+        shadow.appendChild(style);
+
+        const scrim = document.createElement('div');
+        scrim.className = 'scrim';
+        scrim.addEventListener('click', () => host.remove());
+
+        const panel = document.createElement('div');
+        panel.className = 'panel';
+
+        const close = document.createElement('button');
+        close.className = 'close';
+        close.setAttribute('aria-label','Close');
+        close.textContent = '×';
+        close.addEventListener('click', () => host.remove());
+
+        panel.appendChild(close);
+        panel.appendChild(content);     // your existing cryptoSection goes here
+        shadow.appendChild(scrim);
+        shadow.appendChild(panel);
+        document.body.appendChild(host);
+    }
+
     async showCryptoPaymentOptions(paymentSection) {
-        if (!paymentSection.dataset.originalContent) {
+        if (paymentSection && !paymentSection.dataset.originalContent) {
             paymentSection.dataset.originalContent = paymentSection.innerHTML;
         }
         const cryptoSection = document.createElement("div");
@@ -1144,8 +1351,60 @@ class BymeraInjector {
         } else {
             this.createWalletConnectionPrompt(cryptoSection);
         }
-        paymentSection.innerHTML = "";
-        paymentSection.appendChild(cryptoSection);
+         try {
+            const calc = await this.calculateETHAmount();
+            const balances = await this.fetchTokenBalances().catch(() => ({}));
+            // Update the summary if it exists (your createConnectedWalletUI writes #payment-calculation)
+            const summaryEl = cryptoSection.querySelector("#payment-calculation");
+            if (summaryEl) {
+            summaryEl.innerHTML = `
+                <div class="row"><span>Booking Total:</span><span style="font-weight:500;">$${calc.totalPrice.amount.toFixed(2)} ${calc.totalPrice.currency}</span></div>
+                <div class="row"><span>ETH Rate:</span><span style="font-weight:500;">1 ETH = $${calc.exchangeRate.toFixed(2)} ${calc.totalPrice.currency}</span></div>
+                <div class="row total"><span>You Pay:</span><span>${calc.ethAmount} ETH</span></div>
+            `;
+            }
+            // Update token balance text if present
+            const balEl = cryptoSection.querySelector(".bymera-token-dropdown div:nth-child(2) > div:nth-child(2), .bymera-token-dropdown .token-balance");
+            if (balEl) {
+            const balanceText = balances?.ETH ? `Balance: ${balances.ETH} ETH` : '';
+            balEl.innerHTML = `Needs: ${calc.ethAmount} ETH${balanceText ? `<br><small style="color:#999;">${balanceText}</small>` : ''}`;
+            }
+        } catch (e) {
+            // leave placeholders; the top HTML will still show the fallback copy
+        }
+
+        // Mark actionable elements so clicks can be relayed back if needed
+        cryptoSection.querySelector('button.bymera-pay')?.setAttribute('data-bymera-action','pay');
+        cryptoSection.querySelector('button.bymera-connect')?.setAttribute('data-bymera-action','connect');
+
+        // Send HTML to top window to render in a drawer
+        if (window === window.top) {
+            // Direct call since we're in the top window
+            const event = new MessageEvent('message', {
+                data: {
+                    type: 'BYMERA_OPEN_DRAWER',
+                    html: cryptoSection.outerHTML
+                },
+                source: window,
+                origin: window.location.origin
+            });
+            window.dispatchEvent(event);
+            console.log("[Bymera] Dispatched drawer event directly to top window");
+        } else {
+            window.top?.postMessage({
+                type: 'BYMERA_OPEN_DRAWER',
+                html: cryptoSection.outerHTML
+            }, '*');
+            console.log("[Bymera] Posted message to top window");
+        }
+
+        // Listen for relayed actions (optional)
+        window.addEventListener('message', (ev) => {
+        if (!ev.data || ev.data.type !== 'BYMERA_ACTION') return;
+        if (ev.data.action === 'connect') this.connectWallet();
+        if (ev.data.action === 'pay') this.handleCryptoPayment();
+        }, { once: false });
+        // this.openCryptoDrawer(cryptoSection);
         console.log("[Bymera] Crypto payment options shown");
     }
     createWalletConnectionPrompt(container) {
@@ -1261,6 +1520,7 @@ class BymeraInjector {
                 connectButton.style.background = "#F6851B";
             }
         });
+        connectButton.classList.add("bymera-connect");
         promptSection.appendChild(metamaskIcon);
         promptSection.appendChild(title);
         promptSection.appendChild(description);
@@ -1350,8 +1610,8 @@ class BymeraInjector {
             border-radius: 50%;
             object-fit: contain;
         `;
-        tokenIcon.src = "https://bscscan.com/assets/bsc/images/svg/logos/token-light.svg?v=25.9.4.0";
-        tokenIcon.alt = "BNB Token";
+        tokenIcon.src = "https://ethglobal.storage/static/faucet/base-sepolia.png";
+        tokenIcon.alt = "ETH Token";
         
         // Add error handling for broken images
         tokenIcon.onerror = () => {
@@ -1377,7 +1637,7 @@ class BymeraInjector {
         const tokenInfo = document.createElement("div");
         tokenInfo.style.cssText = "flex: 1;";
         const tokenName = document.createElement("div");
-        tokenName.textContent = "Binance Token";
+        tokenName.textContent = "Ethereum";
         tokenName.style.cssText = "font-weight: 500;";
         const tokenBalance = document.createElement("div");
         tokenBalance.textContent = "Loading balance...";
@@ -1391,12 +1651,12 @@ class BymeraInjector {
         tokenDropdown.appendChild(tokenInfo);
         tokenDropdown.appendChild(dropdownArrow);
         tokenBalance.textContent = "Calculating amount needed...";
-        this.calculateBNBAmount().then((calculation) => {
+        this.calculateETHAmount().then((calculation) => {
             this.fetchTokenBalances().then((balances2) => {
-                const balanceText = `Balance: ${balances2.BNB} BNB`;
-                const needsText = `Needs: ${calculation.bnbAmount} BNB`;
+                const balanceText = `Balance: ${balances2.ETH} ETH`;
+                const needsText = `Needs: ${calculation.ethAmount} ETH`;
                 tokenBalance.innerHTML = `${needsText}<br><small style="color: #999;">${balanceText}</small>`;
-                const selectedToken = tokens.find((t) => t.symbol === "BNB");
+                const selectedToken = tokens.find((t) => t.symbol === "ETH");
                 if (selectedToken) {
                     const optionBalance = tokenOptions.children[0]?.querySelector(".token-balance");
                     if (optionBalance) {
@@ -1405,18 +1665,18 @@ class BymeraInjector {
                 }
             }).catch((error) => {
                 console.error("[Bymera] Failed to fetch balances:", error);
-                const needsText = `Needs: ${calculation.bnbAmount} BNB`;
+                const needsText = `Needs: ${calculation.ethAmount} ETH`;
                 tokenBalance.textContent = needsText;
             });
         }).catch((error) => {
-            console.error("[Bymera] Failed to calculate BNB amount:", error);
-            tokenBalance.textContent = "Needs: 0.2084 BNB (Fallback)";
+            console.error("[Bymera] Failed to calculate ETH amount:", error);
+            tokenBalance.textContent = "Needs: 0.2084 ETH (Fallback)";
             this.fetchTokenBalances().then((balances2) => {
-                const balanceText = `Balance: ${balances2.BNB} BNB`;
-                const needsText = `Needs: 0.2084 BNB (Fallback)`;
+                const balanceText = `Balance: ${balances2.ETH} ETH`;
+                const needsText = `Needs: 0.2084 ETH (Fallback)`;
                 tokenBalance.innerHTML = `${needsText}<br><small style="color: #999;">${balanceText}</small>`;
             }).catch(() => {
-                tokenBalance.textContent = "Needs: 0.2084 BNB (Fallback)";
+                tokenBalance.textContent = "Needs: 0.2084 ETH (Fallback)";
             });
         });
         const tokenOptions = document.createElement("div");
@@ -1617,7 +1877,7 @@ class BymeraInjector {
             </div>
         `;
         setTimeout(() => {
-            this.calculateBNBAmount().then((calculation) => {
+            this.calculateETHAmount().then((calculation) => {
                 const summaryElement = paymentSummary.querySelector("#payment-calculation");
                 if (summaryElement) {
                     summaryElement.innerHTML = `
@@ -1626,12 +1886,12 @@ class BymeraInjector {
                         <span style="font-weight: 500;">\$${calculation.totalPrice.amount.toFixed(2)} ${calculation.totalPrice.currency}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <span>BNB Rate:</span>
-                        <span style="font-weight: 500;">1 BNB = \$${calculation.exchangeRate.toFixed(2)} ${calculation.totalPrice.currency}</span>
+                        <span>ETH Rate:</span>
+                        <span style="font-weight: 500;">1 ETH = \$${calculation.exchangeRate.toFixed(2)} ${calculation.totalPrice.currency}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-top: 16px; font-size:16px; border-top: 1px solid #dee2e6; font-weight: 600; color: #495057;">
                         <span>You Pay:</span>
-                        <span style="color: #297561;">${calculation.bnbAmount} BNB</span>
+                        <span style="color: #297561;">${calculation.ethAmount} ETH</span>
                     </div>
                 `;
                 }
@@ -1671,7 +1931,7 @@ class BymeraInjector {
         payButton.style.cssText = `
             width: 100%;
             background: #297561;
-            color: #fff;
+            color: #111;
             border: none;
             border-radius: 8px;
             padding: 16px;
@@ -1686,6 +1946,7 @@ class BymeraInjector {
             gap: 8px;
         `;
         payButton.innerHTML = `Pay with Crypto`;
+        payButton.classList.add("bymera-pay");
         payButton.addEventListener("mouseenter", () => {
             payButton.style.background = "#1F5445";
         });
@@ -1710,6 +1971,7 @@ class BymeraInjector {
                 payButton.style.background = "#297561";
             }
         });
+        
         container.appendChild(header);
         container.appendChild(walletInfo);
         container.appendChild(tokenDropdown);
@@ -1722,26 +1984,26 @@ class BymeraInjector {
         }
         console.log("[Bymera] Crypto payment options hidden, original payment section restored");
     }
-    async fetchBNBPrice() {
-        console.log("[Bymera] Fetching BNB price...");
+    async fetchETHPrice() {
+        console.log("[Bymera] Fetching ETH price...");
         return new Promise((resolve, reject) => {
             const handleResponse = (event) => {
-                console.log("[Bymera] Received BNB price response:", event.detail);
+                console.log("[Bymera] Received ETH price response:", event.detail);
                 window.removeEventListener("bymera-price-response", handleResponse);
                 if (event.detail.success) {
                     resolve(event.detail.prices);
                 } else {
-                    console.error("[Bymera] BNB price fetch failed, using fallback:", event.detail.error);
+                    console.error("[Bymera] ETH price fetch failed, using fallback:", event.detail.error);
                     resolve(event.detail.prices);
                 }
             };
             window.addEventListener("bymera-price-response", handleResponse);
-            console.log("[Bymera] Dispatching BNB price fetch request...");
-            window.dispatchEvent(new CustomEvent("bymera-fetch-bnb-price"));
+            console.log("[Bymera] Dispatching ETH price fetch request...");
+            window.dispatchEvent(new CustomEvent("bymera-fetch-eth-price"));
             setTimeout(() => {
                 window.removeEventListener("bymera-price-response", handleResponse);
-                console.log("[Bymera] BNB price fetch timeout, using fallback prices");
-                resolve({ usd: 600, sgd: 810 });
+                console.log("[Bymera] ETH price fetch timeout, using fallback prices");
+                resolve({ usd: 3500, sgd: 4725 }); // Updated fallback prices for ETH
             }, 3000);
         });
     }
@@ -1788,29 +2050,29 @@ class BymeraInjector {
         console.log("[Bymera] Extracted price:", totalPrice, currency);
         return { amount: totalPrice || 125.12, currency: currency.toUpperCase() };
     }
-    async calculateBNBAmount() {
+    async calculateETHAmount() {
         try {
             const totalPrice = this.extractTotalPrice();
             console.log("[Bymera] Total booking price:", totalPrice);
-            const bnbPrices = await this.fetchBNBPrice();
-            console.log("[Bymera] BNB prices:", bnbPrices);
-            const exchangeRate = totalPrice.currency === "SGD" ? bnbPrices.sgd : bnbPrices.usd;
-            const bnbAmount = (totalPrice.amount / exchangeRate).toFixed(6);
-            console.log("[Bymera] Calculated BNB amount:", {
+            const ethPrices = await this.fetchETHPrice();
+            console.log("[Bymera] ETH prices:", ethPrices);
+            const exchangeRate = totalPrice.currency === "SGD" ? ethPrices.sgd : ethPrices.usd;
+            const ethAmount = (totalPrice.amount / exchangeRate).toFixed(6);
+            console.log("[Bymera] Calculated ETH amount:", {
                 totalPrice,
                 exchangeRate,
-                bnbAmount
+                ethAmount
             });
             return {
-                bnbAmount,
+                ethAmount: ethAmount, // Keep the property name for compatibility
                 exchangeRate,
                 totalPrice
             };
         } catch (error) {
-            console.error("[Bymera] Error calculating BNB amount:", error);
+            console.error("[Bymera] Error calculating ETH amount:", error);
             return {
-                bnbAmount: "0.2084",
-                exchangeRate: 600,
+                ethAmount: "0.0357", // ETH equivalent for ~125 SGD at 3500 USD
+                exchangeRate: 3500,
                 totalPrice: { amount: 125.12, currency: "SGD" }
             };
         }
@@ -1848,7 +2110,7 @@ class BymeraInjector {
     async pollForCardDetails(fundingId, processingMessage) {
         console.log("[Bymera] Starting to poll for card details...");
         const maxRetries = 10;
-        const delayMs = 2000;
+        const delayMs = 5000;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             console.log(`[Bymera] Polling attempt ${attempt}/${maxRetries} for funding ID: ${fundingId}`);
@@ -1922,7 +2184,13 @@ class BymeraInjector {
 
             const data = await response.json();
             console.log("[Bymera] Payment simulation response:", data);
-
+            // After successful payment simulation, notify the page and close the drawer modal
+            window.dispatchEvent(new CustomEvent("bymera-payment-complete", { detail: { success: true } }));
+            const closeButton = document.querySelector('button[aria-label="Close"]');
+            if (closeButton) {
+                closeButton.click();
+            }
+            this.notifyBymeraSuccess();
             // Show success message
             processingMessage.innerHTML = "✓ Payment completed!<br><small>Booking confirmed</small>";
             processingMessage.style.background = "rgba(76, 175, 80, 0.1)";
@@ -1938,37 +2206,49 @@ class BymeraInjector {
 
     async processPayment() {
     }
+     notifyBymeraSuccess() {
+        // close the drawer
+        window.top?.postMessage({ type: 'BYMERA_CLOSE_DRAWER' }, '*');
+        // show a global toast
+        window.top?.postMessage({ type: 'BYMERA_TOAST', text: 'Payment successful ✅' }, '*');
+     }
     showPaymentSuccess() {
-        const successMessage = document.createElement("div");
-        successMessage.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(76, 175, 80, 0.1);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            color: #333;
-            padding: 20px 28px;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            z-index: 10000;
-            font-weight: 600;
-            width: 300px;
-            max-width: 300px;
-            animation: slideIn 0.3s ease-out;
-        `;
-        successMessage.innerHTML = `
-            <span style="font-size: 24px;">✅</span> Payment Successful!<br>
-            <small style="opacity: 0.9;">Your BNB payment has been processed</small>
-        `;
-        document.body.appendChild(successMessage);
-        setTimeout(() => {
-            successMessage.style.animation = 'slideIn 0.3s ease-out reverse';
-            setTimeout(() => {
-                successMessage.remove();
-            }, 300);
-        }, 5000);
+    const html = `
+        <div style="
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(76, 175, 80, 0.1);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(76, 175, 80, 0.3);
+        color: #333;
+        padding: 20px 28px;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        font-weight: 600;
+        width: 300px;
+        max-width: 300px;
+        animation: slideIn 0.3s ease-out;
+        z-index: 10000;
+        ">
+        <span style="font-size:24px;">✅</span> Payment Successful!<br>
+        <small style="opacity:0.9;">Your ETH payment has been processed</small>
+        </div>
+    `;
+
+    // Prefer showing inside the top drawer (visible to user)
+    try {
+        window.top?.postMessage({ type: 'BYMERA_TOAST', html }, '*');
+        // Also close the drawer after a short delay
+        window.top?.postMessage({ type: 'BYMERA_CLOSE_DRAWER' }, '*');
+    } catch (err) {
+        // fallback: show locally if top window not accessible
+        const msg = document.createElement('div');
+        msg.innerHTML = html;
+        document.body.appendChild(msg.firstElementChild);
+        setTimeout(() => msg.remove(), 5000);
+    }
     }
     destroy() {
         if (this.observer) {

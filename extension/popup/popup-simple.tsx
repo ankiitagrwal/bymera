@@ -5,7 +5,7 @@ function App() {
     return (
         <div className="popup-container">
             <header className="header">
-                <img src="/assets/icon48.png" alt="Bymera" className="logo" />
+                <img src={'assets/icon48.png'} alt="Bymera cryptocurrency payment extension logo featuring a stylized icon representing secure digital transactions" className="logo" style={{ width: 48, height: 48, objectFit: 'contain', background: 'transparent' }} />
                 <h1>Bymera</h1>
             </header>
 

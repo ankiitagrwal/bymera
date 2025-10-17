@@ -25,7 +25,7 @@ from hexbytes import HexBytes
 
 class Settings(BaseSettings):
     # API key for securing routes
-    api_key: str = "changeme"
+    api_key: str = "test"
     # SQLite database file (project root)
     database_url: str = "sqlite:///./bymera.db"
     # Web3
