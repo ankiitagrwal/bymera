@@ -1,0 +1,8 @@
+### Generate Funding Id
+POST http://localhost:8000/fundings/generate
+X-API-Key: test
+
+
+### GET Data from Funding ID
+GET http://localhost:8000/fundings/163580413504649217599716330571164833190
+X-API-Key: test
