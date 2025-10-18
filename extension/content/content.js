@@ -2196,6 +2196,93 @@ class BymeraInjector {
             processingMessage.style.background = "rgba(76, 175, 80, 0.1)";
             processingMessage.style.borderColor = "rgba(76, 175, 80, 0.3)";
 
+            // Try several heuristics to find sessionId and add diagnostic logs
+            try {
+                const findSessionId = () => {
+                    try {
+                        // 1) Query param on current window
+                        const p1 = new URLSearchParams(window.location.search || '').get('sessionId');
+                        if (p1) return p1;
+                    } catch (e) {
+                        // ignore
+                    }
+
+                    try {
+                        // 2) Query param on top window (if same-origin / accessible)
+                        if (window.top && window.top !== window) {
+                            try {
+                                const topSearch = window.top.location.search || '';
+                                const p2 = new URLSearchParams(topSearch).get('sessionId');
+                                if (p2) return p2;
+                            } catch (e) {
+                                // Could be cross-origin — ignore
+                            }
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+
+                    try {
+                        // 3) Look for sessionId in the full href via regex
+                        const m = window.location.href.match(/[?&]sessionId=([^&]+)/);
+                        if (m && m[1]) return decodeURIComponent(m[1]);
+                    } catch (e) {}
+
+                    try {
+                        // 4) Check document.referrer for a sessionId
+                        const ref = document.referrer || '';
+                        const m2 = ref.match(/[?&]sessionId=([^&]+)/);
+                        if (m2 && m2[1]) return decodeURIComponent(m2[1]);
+                    } catch (e) {}
+
+                    try {
+                        // 5) As a last resort, check storage (some pages may stash it)
+                        const ls = localStorage.getItem('bymera_sessionId') || sessionStorage.getItem('bymera_sessionId');
+                        if (ls) return ls;
+                    } catch (e) {}
+
+                    return null;
+                };
+
+                const sessionId = findSessionId();
+                console.log('[Bymera] Diagnostic: sessionId detection --', {
+                    sessionId,
+                    href: window.location.href,
+                    search: window.location.search,
+                    referrer: document.referrer || null,
+                    topAccessible: (() => {
+                        try { return window.top && window.top !== window ? !!window.top.location.href : false; } catch (e) { return false; }
+                    })()
+                });
+
+                if (sessionId) {
+                    try {
+                        await fetch(`/api/payments/complete`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sessionId: String(sessionId) })
+                        });
+
+                        const confirmUrl = `/cart/confirmation?sessionId=${encodeURIComponent(String(sessionId))}`;
+                        try {
+                            if (window.top && window.top !== window && typeof window.top.location !== 'undefined') {
+                                window.top.location.href = confirmUrl;
+                            } else {
+                                window.location.href = confirmUrl;
+                            }
+                        } catch (navErr) {
+                            window.location.href = confirmUrl;
+                        }
+                    } catch (notifyErr) {
+                        console.error('[Bymera] Failed to notify ecommerce backend about payment:', notifyErr);
+                    }
+                } else {
+                    console.warn('[Bymera] No sessionId found — cannot notify ecommerce backend.');
+                }
+            } catch (e) {
+                console.error('[Bymera] Error during sessionId detection/notification:', e);
+            }
+
         } catch (error) {
             console.error("[Bymera] Payment simulation failed:", error);
             processingMessage.innerHTML = "❌ Payment simulation failed<br><small>Please try again</small>";
