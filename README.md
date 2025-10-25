@@ -1,9 +1,13 @@
 # Bymera
 
 Universal crypto payment bridge — pay with crypto on sites that only accept cards.
+## Demo
 
+https://www.bymera.xyz/demo
+## 
 ![Bymera](bymera.png)
 
+## 
 Bymera is a browser extension + backend system that lets users pay with cryptocurrency anywhere a card is accepted. The extension detects card checkout forms, funds a virtual card (via a backend that talks to Lithic and smart contracts), and auto-fills the merchant's card form so the merchant processes a normal card payment.
 
 ## Why this project
