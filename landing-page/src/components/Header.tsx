@@ -5,9 +5,9 @@ import Link from 'next/link'
 export const Header = () => {
   return (
     <header className="w-full container mx-auto p-6 flex justify-between items-center">
-      <a className="flex items-center text-white no-underline hover:no-underline font-bold text-2xl lg:text-3xl">
+      <Link href="/" className="flex items-center text-white no-underline hover:no-underline font-bold text-2xl lg:text-3xl">
         Bymera
-      </a>
+      </Link>
       <div className="flex items-center space-x-4">
         <a
           href="https://github.com/ankit875/bymera"
