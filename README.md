@@ -1,102 +1,96 @@
 # Bymera
 
-> Universal Crypto Payment Solution
+Universal crypto payment bridge — pay with crypto on sites that only accept cards.
 
-**"Pay with crypto anywhere — even on sites that only accept cards."**
+![Bymera](bymera.png)
 
-Bymera is a browser extension that enables crypto payments on any website that accepts card payments, even if the merchant doesn't support cryptocurrency.
+Bymera is a browser extension + backend system that lets users pay with cryptocurrency anywhere a card is accepted. The extension detects card checkout forms, funds a virtual card (via a backend that talks to Lithic and smart contracts), and auto-fills the merchant's card form so the merchant processes a normal card payment.
 
----
+## Why this project
 
-## Problem Statement
+Most merchants only accept cards, forcing users to off-ramp crypto to fiat. Bymera removes that friction by creating a merchant-agnostic virtual card funded by crypto, enabling seamless payments without requiring merchants to integrate Web3.
 
-Despite massive Web3 growth, crypto payments still face major barriers:
+## Key features
 
-- **Merchants** must integrate complex payment gateways to accept crypto
-- **Most e-commerce sites** still depend solely on card networks
-- **Users** are forced to off-ramp crypto into fiat before paying online
-- **Integration, compliance, and regulatory friction** slow mass adoption
+- Works on any site with a card checkout form
+- One-click payments from crypto wallets
+- Virtual cards issued via Lithic (sandbox/support)
+- Privacy-first: merchants only see card data, not crypto details
+- Cross-chain / EVM-compatible support
 
-**In short** — crypto can't be used everywhere, even though users already have funds.
+## Repository layout
 
----
+- `extension/` — browser extension source and manifest
+- `backend/` — FastAPI backend that listens to events and creates virtual cards
+- `evm/` — smart contracts, Foundry project and tests
+- `landing-page/` — marketing / demo Next.js app
+- `shared/` — shared types and utilities
 
-## Our Solution
+## Prerequisites
 
-Bymera is a browser extension that acts as a universal crypto payment bridge:
+- Node (or Bun) — used for extension & web UI tooling
+- Python 3.10+ (for backend) and uvicorn
+- Docker (optional) — for running the backend in a container
+- Foundry (optional) — for building/running solidity contracts in `evm/`
 
-- Works on **any site** that has a card checkout form
-- Replaces manual card input with a **one-click crypto payment flow**
-- Generates a **virtual card** in the background, funded by crypto
-- Enables **privacy-first** and merchant-agnostic payments
+## Quick start — local development
 
-**Result:** Any e-commerce or subscription site instantly becomes crypto-compatible — without the merchant ever integrating Web3.
+1) Backend
 
----
+```bash
+cd backend
+cp .env.example .env   # or create .env with values listed in backend/README.md
+# Edit .env and set BACKEND_API_KEY, LITHIC_API_KEY (sandbox), DATABASE_URL, WEB3_PROVIDER_URI, CONTRACT_ADDRESS, etc.
+uv run uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
+# or build/run via Docker: docker build -t vymera-backend . && docker run -d -p 8000:8000 --env-file .env vymera-backend
+```
 
-## How It Works
+API notes: all backend endpoints require header `X-API-Key: <BACKEND_API_KEY>` (see `backend/README.md` for endpoints and examples).
 
-1. **Detection** — The browser extension automatically detects card payment forms
-2. **Injection** — It injects a wallet connector that allows crypto payment directly
-3. **Conversion** — The backend and smart contract convert crypto → fiat and fund a virtual card via Lithic API
-4. **Processing** — The card details are auto-filled, and the merchant processes payment as a normal card transaction
+2) Extension (development)
 
-### Benefits
+```bash
+# From repo root
+bun install     # or npm/yarn install if you prefer
+bun run build:extension   # builds/transpiles extension files
+```
 
--  **No merchant integration needed**
--  **Instant crypto-to-card conversion**
--  **Complete privacy and security**
+To load in Chrome/Edge: open chrome://extensions, enable Developer mode, click "Load unpacked" and select the repository root (or the build output folder if your build script writes to a `dist/` or `extension/` folder).
 
----
+3) Smart contracts (optional)
 
-## Key Features
+```bash
+cd evm
+# Requires Foundry (forge)
+forge test
+forge build
+```
 
-- **Crypto-to-Card Bridge** — Spend crypto anywhere without off-ramping
-- **Smart Detection** — Works automatically on any website's checkout page
-- **Virtual Cards** — Backed by Lithic API for real card processing
-- **Privacy-First** — No financial data shared with merchants
-- **Cross-Chain Support** — Works on multiple EVM networks
-- **One-Click Payments** — Simplified UX for mainstream adoption
+## Running tests
 
----
+- Solidity tests: `cd evm && forge test`
+- Backend: add pytest-based tests in `backend/` and run with `pytest`
 
-## Getting Started
+## Environment variables
 
-### Installation
+The backend expects a `.env` file with at least the variables described in `backend/README.md` (BACKEND_API_KEY, DATABASE_URL, WEB3_PROVIDER_URI, CONTRACT_ADDRESS, LITHIC_API_KEY, LITHIC_ENVIRONMENT, POLL_INTERVAL_SECONDS).
 
-1. Clone this repository
-2. Install dependencies
-3. Load the extension in your browser
-4. Connect your crypto wallet
-5. Start paying with crypto anywhere!
+## Security & notes
 
-### Usage
-
-1. Navigate to any e-commerce site
-2. Add items to your cart
-3. Proceed to checkout
-4. Click the Bymera extension when payment form appears
-5. Select your crypto and confirm payment
-6. Payment is processed automatically with a virtual card
-
----
-
-## Technology Stack
-
-- **Frontend:** Browser Extension (JavaScript/TypeScript)
-- **Backend:** Smart Contracts + API
-- **Payment Processing:** Lithic API
-- **Blockchain:** EVM-compatible networks
-- **Security:** End-to-end encryption
-
----
-
-## License
-
-This project is licensed under the MIT License.
-
----
+- Use Lithic sandbox keys for local/dev. Do not commit secrets.
+- When `CONTRACT_ADDRESS` is set to the zero address the listener runs in no-op mode (useful for local dev).
 
 ## Contributing
 
-We welcome contributions! Please see our contributing guidelines for more details.
+Contributions are welcome. Please open issues or PRs. For development guidelines, add a `CONTRIBUTING.md` with code style and PR process.
+
+## License
+
+MIT
+
+---
+
+If you'd like, I can also:
+- add a small `CONTRIBUTING.md` with PR checklist
+- add example `.env.example` to `backend/` if missing
+- update package scripts to make local dev commands clearer
