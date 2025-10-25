@@ -66,6 +66,55 @@
         document.body.appendChild(node);
     }
     }
+    // Always show a floating popup directly on the current document (ignores drawer/top bridge)
+    function showFloatingPopup(nodeOrHtml, opts = {}) {
+        console.log('[Bymera] showFloatingPopup called', { opts });
+        try {
+            let el;
+            if (typeof nodeOrHtml === 'string') {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = nodeOrHtml;
+                el = wrapper.firstElementChild || wrapper;
+            } else if (nodeOrHtml instanceof Node) {
+                el = nodeOrHtml;
+            } else {
+                el = document.createElement('div');
+                el.textContent = String(nodeOrHtml);
+            }
+
+            // Normalize styles to ensure visibility
+            try {
+                // don't overwrite existing positioning if intentionally set, but ensure defaults
+                const defaultStyles = `position: fixed !important; top: ${opts.top || '20px'} !important; right: ${opts.right || '20px'} !important; z-index: ${opts.zIndex || '2147483647'} !important; pointer-events: auto !important;`;
+                el.style.cssText = (el.style.cssText || '') + defaultStyles;
+                el.setAttribute('data-bymera-popup', '1');
+            } catch (sErr) {
+                console.warn('[Bymera] Failed to set popup styles', sErr);
+            }
+
+            try {
+                document.body.appendChild(el);
+                console.log('[Bymera] showFloatingPopup appended element to document.body');
+            } catch (appendErr) {
+                console.warn('[Bymera] append to document.body failed, falling back to postMessage', appendErr);
+                // fallback: send to top to show toast via bridge
+                try {
+                    const html = (el && el.outerHTML) || String(nodeOrHtml);
+                    window.top?.postMessage({ type: 'BYMERA_TOAST', html }, '*');
+                } catch (pmErr) {
+                    console.warn('[Bymera] postMessage fallback failed', pmErr);
+                }
+                return null;
+            }
+
+            const ttl = typeof opts.timeout === 'number' ? opts.timeout : 5000;
+            if (ttl > 0) setTimeout(() => { try { el.remove(); } catch (e) {} }, ttl);
+            return el;
+        } catch (e) {
+            console.warn('[Bymera] showFloatingPopup failed', e);
+            return null;
+        }
+    }
     window.addEventListener('message', (e) => {
   if (e.data?.type === 'BYMERA_CLOSE_DRAWER') {
     document.querySelector('[data-bymera-drawer-host]')?.remove();
@@ -963,8 +1012,9 @@ class BymeraInjector {
         this.payButtonReplaced = false;
         console.log("[Bymera] Original button restored");
     }
-    async handleCryptoPayment() {
+    async handleCryptoPayment(payButton = null) {
         console.log("[Bymera] Starting crypto payment flow...");
+        if (payButton) this.showButtonLoader(payButton, "Processing...");
         try {
             const isConnected = await this.checkWalletConnection();
             if (!isConnected) {
@@ -1134,7 +1184,9 @@ class BymeraInjector {
                 <a href="${explorerUrl}" target="_blank" style="color: #333; text-decoration: underline;">View on ${explorerName}</a>
             `;
             // document.body.appendChild(processingMessage);
-            appendToast(processingMessage);
+            // Use floating popup so it appears even when drawer is used; timeout 0 means persist until removed
+            console.log('[Bymera] Attempting to show floating processing popup');
+            showFloatingPopup(processingMessage, { timeout: 0 });
             setTimeout(() => {
                 console.log("[Bymera] Simulatfing transaction confirmation...");
                 processingMessage.innerHTML = "\u2713 Transaction confirmed!<br><small>Processing payment...</small>";
@@ -1178,6 +1230,15 @@ class BymeraInjector {
         } catch (error) {
             console.error("[Bymera] Crypto payment failed:", error);
             alert("Payment failed: " + error.message);
+            if (payButton) {
+                try {
+                    this.clearButtonState(payButton, { text: `<span style="font-size:20px;">\u20BF</span> Pay with Crypto` });
+                    payButton.disabled = false;
+                    payButton.style.background = "#297561";
+                } catch (e) {
+                    console.warn('[Bymera] Failed to restore pay button state', e);
+                }
+            }
         }
     }
     extractPaymentData() {
@@ -1260,6 +1321,51 @@ class BymeraInjector {
         const encoded = this.encodeFundParams(testId, testAddress, testAmount, testCurrency, testFiat);
         console.log("[Bymera] Test encoding result:", encoded);
         console.log("[Bymera] Expected result should match your data");
+    }
+    // Small helper to show an inline spinner on a button and set text
+    showButtonLoader(button, text = "Processing...") {
+        if (!button) return;
+        // ensure global inline spinner styles exist
+        if (!document.querySelector('#bymera-inline-spinner-style')) {
+            const s = document.createElement('style');
+            s.id = 'bymera-inline-spinner-style';
+            s.textContent = `
+            .bymera-inline-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.08); border-top-color: #297561; border-radius: 50%; margin-right:8px; animation: bymera-spin 0.9s linear infinite; }
+            @keyframes bymera-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `;
+            document.head.appendChild(s);
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        try {
+            button.dataset._bymera_original_html = button.innerHTML;
+        } catch (e) {}
+        button.innerHTML = `<span class="bymera-inline-spinner" aria-hidden="true"></span><span>${text}</span>`;
+        button.style.cursor = 'default';
+        button.style.opacity = '0.95';
+    }
+
+    clearButtonState(button, opts = {}) {
+        if (!button) return;
+        button.disabled = !!opts.disable || false;
+        button.removeAttribute('aria-busy');
+        button.style.cursor = '';
+        if (opts.success) {
+            button.innerHTML = `<span style="font-size:18px;margin-right:8px;">✓</span><span>${opts.text || 'Payment complete'}</span>`;
+            button.style.background = '#daf6e8';
+            button.style.color = '#0b6b42';
+        } else if (opts.text) {
+            button.innerHTML = opts.text;
+            button.style.background = '';
+            button.style.color = '';
+        } else if (button.dataset._bymera_original_html) {
+            button.innerHTML = button.dataset._bymera_original_html;
+            delete button.dataset._bymera_original_html;
+            button.style.background = '';
+            button.style.color = '';
+            button.style.opacity = '';
+        }
     }
     
     // Renders any element in a right-side drawer using Shadow DOM (immune to host CSS)
@@ -1956,18 +2062,20 @@ class BymeraInjector {
         payButton.addEventListener("click", async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            payButton.disabled = true;
-            payButton.innerHTML = "<span>Processing...</span>";
-            payButton.style.background = "#ccc";
+            // show inline loader and readable state
+            this.showButtonLoader(payButton, "Processing...");
             try {
-                await this.handleCryptoPayment();
+                await this.handleCryptoPayment(payButton);
+                // on success, show completed state briefly then close (simulatePayment will signal close)
+                this.clearButtonState(payButton, { success: true, text: 'Done' });
+                setTimeout(() => {
+                    try { payButton.closest('[data-bymera-drawer-host]')?.remove(); } catch (e) {}
+                }, 1400);
             } catch (error) {
                 console.error("[Bymera] Payment failed:", error);
+                // revert button to original state and show error hint
+                this.clearButtonState(payButton, { text: `<span style=\"font-size:20px;\">\u20BF</span> Pay with Crypto` });
                 payButton.disabled = false;
-                payButton.innerHTML = `
-                    <span style="font-size: 20px;">\u20BF</span>
-                    Pay with Crypto
-                `;
                 payButton.style.background = "#297561";
             }
         });
@@ -2173,7 +2281,7 @@ class BymeraInjector {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    descriptor: "AIRBNB",
+                    descriptor: "ECOMMERCE",
                     mcc: "7011"
                 })
             });
@@ -2186,6 +2294,13 @@ class BymeraInjector {
             console.log("[Bymera] Payment simulation response:", data);
             // After successful payment simulation, notify the page and close the drawer modal
             window.dispatchEvent(new CustomEvent("bymera-payment-complete", { detail: { success: true } }));
+            // Try to update any pay buttons present to show final state
+            try {
+                const payBtn = document.querySelector('button.bymera-pay');
+                if (payBtn) {
+                    try { this.clearButtonState(payBtn, { success: true, text: 'Done' }); } catch (e) {}
+                }
+            } catch (e) {}
             const closeButton = document.querySelector('button[aria-label="Close"]');
             if (closeButton) {
                 closeButton.click();

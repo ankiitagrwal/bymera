@@ -317,7 +317,7 @@ class FundingInfoResponse(BaseModel):
 
 
 class SimulateRequest(BaseModel):
-    descriptor: str = "AIRBNB"
+    descriptor: str = "ECOMMERCE"
     mcc: str = "7011"
 
 

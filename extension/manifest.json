@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Bymera - Pay with Crypto",
     "version": "1.0.0",
-    "description": "Seamlessly pay for your travel bookings using crypto on popular travel websites like Airbnb",
+    "description": "Seamlessly pay for your ecommerce bookings using crypto on popular travel websites",
     "permissions": [
         "storage",
         "activeTab",
